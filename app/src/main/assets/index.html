@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#fff8ee">
+    <title>打工人小账本</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside id="desktop-sidebar" class="desktop-sidebar">
+        <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 48 48" role="img"><path d="M24 4a20 20 0 1 0 0 40 20 20 0 0 0 0-40Z" fill="currentColor" opacity=".16"/><path d="M14 23c0-5 4-8 10-8s10 3 10 8v9c0 4-4 6-10 6s-10-2-10-6v-9Z" fill="currentColor"/><circle cx="18.5" cy="25" r="1.7" fill="#fff8ee"/><circle cx="29.5" cy="25" r="1.7" fill="#fff8ee"/><path d="M21 31c2 1.5 4 1.5 6 0" fill="none" stroke="#fff8ee" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </div>
+            <div><strong>打工人小账本</strong><span>把钱和时间都算明白</span></div>
+        </div>
+        <nav class="side-nav" aria-label="主导航">
+            <button class="nav-button active" data-view="dashboard"><span data-icon="dashboard"></span><span>今日驾驶舱</span></button>
+            <button class="nav-button" data-view="hourly"><span data-icon="clock"></span><span>我的时薪</span></button>
+            <button class="nav-button" data-view="ledger"><span data-icon="wallet"></span><span>10 秒记账</span></button>
+            <button class="nav-button" data-view="monthly"><span data-icon="calendar"></span><span>月度总结</span></button>
+            <button class="nav-button" data-view="fund"><span data-icon="seed"></span><span>自由基金</span></button>
+            <button class="nav-button" data-view="discover"><span data-icon="spark"></span><span>有趣发现</span></button>
+        </nav>
+        <div class="sidebar-footnote">
+            <span class="status-dot"></span>
+            <span>数据只在本机保存</span>
+        </div>
+    </aside>
+
+    <main class="main-area">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">PERSONAL WORKBENCH</p>
+                <h1 id="page-title">今日驾驶舱</h1>
+            </div>
+            <div class="topbar-actions">
+                <button class="icon-button" id="theme-button" title="切换深色" aria-label="切换深色"><span data-icon="moon"></span></button>
+                <button class="soft-button" id="export-button"><span data-icon="download"></span>导出备份</button>
+                <button class="soft-button" id="import-button"><span data-icon="upload"></span>导入备份</button>
+            </div>
+        </header>
+
+        <div id="error-card" class="notice error-card hidden" role="alert">
+            <span data-icon="alert"></span>
+            <div><strong>本地数据读取失败</strong><p id="error-message">请检查后重试，当前页面仍然可以查看。</p></div>
+            <button class="text-button" id="retry-button">重试</button>
+        </div>
+        <div id="global-toast" class="toast" role="status" aria-live="polite"></div>
+
+        <section id="view-dashboard" class="view active" aria-labelledby="dashboard-title">
+            <div class="hero-card">
+                <div class="hero-copy">
+                    <p class="eyebrow">THURSDAY · <span id="today-label">今天</span></p>
+                    <h2 id="dashboard-title">今天也要算清楚</h2>
+                    <p>不是为了苛责每一笔钱，而是让每一小时更接近你想要的生活。</p>
+                    <div class="hero-chip"><span data-icon="leaf"></span>每一笔记录，都是给未来的选择权</div>
+                </div>
+                <div class="pig-art" aria-label="小猪存钱罐托着硬币与嫩芽" role="img">
+                    <svg class="pig-illustration" viewBox="0 0 250 180">
+                        <path d="M51 137c12-29 34-42 66-43 38-2 71 14 82 46-19 18-44 28-76 28-31 0-56-10-72-31Z" fill="#bdebdc"/>
+                        <path d="M73 104c0-32 23-50 57-50s60 18 60 50c0 32-25 47-59 47s-58-15-58-47Z" fill="#ffad95"/>
+                        <path d="M91 57c-9-16-2-28 12-33 2 18 8 24 18 28M159 56c10-14 20-17 31-9-11 8-16 15-16 28" fill="#ffad95" stroke="#e98777" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <ellipse cx="84" cy="105" rx="12" ry="16" fill="#ffad95" stroke="#e98777" stroke-width="4"/>
+                        <ellipse cx="178" cy="105" rx="12" ry="16" fill="#ffad95" stroke="#e98777" stroke-width="4"/>
+                        <circle cx="111" cy="97" r="5" fill="#4b5b58"/><circle cx="151" cy="97" r="5" fill="#4b5b58"/>
+                        <ellipse cx="131" cy="119" rx="23" ry="14" fill="#f88f7d"/><circle cx="123" cy="118" r="4" fill="#a55c58"/><circle cx="140" cy="118" r="4" fill="#a55c58"/>
+                        <path d="M117 139c9 7 20 7 29 0" fill="none" stroke="#db756b" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M184 42c0-14 8-23 19-27-1 13-6 22-19 27ZM200 38c12 1 20 7 25 18-12-1-21-6-25-18Z" fill="#7dcbb0"/>
+                        <path d="M193 62c2-10 2-18 0-27" stroke="#63ad96" stroke-width="4" stroke-linecap="round"/>
+                        <circle cx="197" cy="24" r="12" fill="#f6c95e" stroke="#e4ab42" stroke-width="3"/>
+                        <path d="M197 17v14M190 24h14" stroke="#fff8ee" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="metric-grid">
+                <article class="metric-card mint-tint"><div class="metric-icon"><span data-icon="clock"></span></div><div><span>真实时薪</span><strong id="dashboard-hourly">—</strong><small id="dashboard-hourly-note">先完成时薪设置</small></div></article>
+                <article class="metric-card coral-tint"><div class="metric-icon"><span data-icon="receipt"></span></div><div><span>本月支出</span><strong id="dashboard-month-expense">¥0</strong><small id="dashboard-today-expense">今日 ¥0</small></div></article>
+                <article class="metric-card yellow-tint"><div class="metric-icon"><span data-icon="seed"></span></div><div><span>自由基金进度</span><strong id="dashboard-fund-progress">0%</strong><small id="dashboard-fund-meta">还没有设置目标</small></div></article>
+            </div>
+
+            <div class="content-grid two-one">
+                <article class="card recent-card">
+                    <div class="section-heading"><div><p class="eyebrow">TIME IS MONEY</p><h3>刚刚花掉的时光</h3></div><button class="text-button" data-view="ledger">查看全部 <span data-icon="arrow"></span></button></div>
+                    <div id="dashboard-recent-list" class="recent-list"></div>
+                </article>
+                <article class="card quote-card"><span class="quote-mark">“</span><h3>自由宣言</h3><p>攒出半年缓冲期，给下一次选择留出底气。</p><div class="quote-line"></div><small>— 给未来的自己</small></article>
+            </div>
+
+            <article class="card quick-card">
+                <div class="section-heading"><div><p class="eyebrow">QUICK ENTRY</p><h3>现在记一笔</h3></div><span class="shortcut-hint">10 秒完成 · 自动换算工时</span></div>
+                <form id="quick-form" class="entry-form">
+                    <div class="segmented" role="group" aria-label="流水类型"><button type="button" class="segment active" data-kind="expense">支出</button><button type="button" class="segment" data-kind="income">收入</button></div>
+                    <label class="field"><span>金额</span><div class="input-prefix"><b>¥</b><input id="quick-amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required></div></label>
+                    <label class="field"><span>分类</span><select id="quick-category"><option>吃饭</option><option>交通</option><option>购物</option><option>娱乐</option><option>房租</option><option>其他</option></select></label>
+                    <label class="field"><span>日期</span><input id="quick-date" type="date" required></label>
+                    <label class="field field-wide"><span>随手一句</span><input id="quick-note" type="text" maxlength="80" placeholder="比如：午餐加一杯咖啡"></label>
+                    <label class="field expense-only"><span>支出性质</span><select id="quick-expense-type"><option value="flexible">弹性支出</option><option value="fixed">固定支出</option></select></label>
+                    <button class="primary-button" id="quick-submit" type="submit"><span data-icon="plus"></span>保存并换算工时</button>
+                    <p id="quick-form-status" class="form-status" role="status"></p>
+                </form>
+            </article>
+        </section>
+
+        <section id="view-hourly" class="view" aria-labelledby="hourly-title">
+            <div class="page-intro"><p class="eyebrow">YOUR REAL RATE</p><h2 id="hourly-title">我的时薪</h2><p>把工资换算成真实的一小时，别让“月薪”替你隐藏时间成本。</p></div>
+            <div class="content-grid two-one">
+                <article class="card"><div class="section-heading"><div><h3>输入你的工作现实</h3><p class="muted">所有数据只保存在这台手机里</p></div></div>
+                    <form id="hourly-form" class="settings-form">
+                        <label class="field"><span>综合到手月薪</span><div class="input-prefix"><b>¥</b><input id="hourly-salary" type="number" min="0" step="0.01" inputmode="decimal" required></div></label>
+                        <label class="field"><span>发薪月数</span><input id="hourly-pay-months" type="number" min="0.01" step="0.1" required></label>
+                        <label class="field"><span>每月工作日</span><input id="hourly-workdays" type="number" min="0.01" step="0.25" required></label>
+                        <label class="field"><span>每日在场时长（小时）</span><input id="hourly-onsite" type="number" min="0" step="0.25" required></label>
+                        <label class="field"><span>每日往返通勤（小时）</span><input id="hourly-commute" type="number" min="0" step="0.25" required></label>
+                        <label class="field"><span>每月加班（小时）</span><input id="hourly-overtime" type="number" min="0" step="0.5" required></label>
+                        <label class="field field-wide"><span>每月工作成本</span><div class="input-prefix"><b>¥</b><input id="hourly-work-cost" type="number" min="0" step="0.01" inputmode="decimal" required></div></label>
+                        <button class="primary-button" id="hourly-save" type="submit"><span data-icon="save"></span>保存时薪参数</button>
+                        <p id="hourly-form-status" class="form-status" role="status"></p>
+                    </form>
+                </article>
+                <article class="card rate-result-card"><p class="eyebrow">RESULT</p><span class="result-label">你的真实时薪</span><strong id="hourly-real">—</strong><p id="hourly-difference" class="result-note">填写参数后展开计算。</p><div class="formula-box"><div class="section-heading"><h3>公式展开</h3><button class="text-button" id="formula-toggle">收起</button></div><p id="hourly-formula" class="formula-text">等待输入时薪参数。</p></div><div class="mini-stat"><span>名义时薪</span><strong id="hourly-nominal">—</strong></div></article>
+            </div>
+        </section>
+
+        <section id="view-ledger" class="view" aria-labelledby="ledger-title">
+            <div class="page-intro"><p class="eyebrow">LEDGER</p><h2 id="ledger-title">10 秒记账</h2><p>不需要完美，只需要在钱离开时留下一个轻巧的痕迹。</p></div>
+            <article class="card ledger-page-card"><form id="ledger-form" class="entry-form"><input id="ledger-id" type="hidden"><div class="segmented" role="group" aria-label="流水类型"><button type="button" class="segment active" data-kind="expense">支出</button><button type="button" class="segment" data-kind="income">收入</button></div><label class="field"><span>金额</span><div class="input-prefix"><b>¥</b><input id="ledger-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required></div></label><label class="field"><span>分类</span><select id="ledger-category"><option>吃饭</option><option>交通</option><option>购物</option><option>娱乐</option><option>房租</option><option>其他</option></select></label><label class="field"><span>日期</span><input id="ledger-date" type="date" required></label><label class="field field-wide"><span>备注</span><input id="ledger-note" type="text" maxlength="80" placeholder="这笔钱去了哪里？"></label><label class="field expense-only"><span>支出性质</span><select id="ledger-expense-type"><option value="flexible">弹性支出</option><option value="fixed">固定支出</option></select></label><button class="primary-button" id="ledger-submit" type="submit"><span data-icon="plus"></span>记下这一笔</button><button class="soft-button hidden" id="ledger-cancel" type="button">取消编辑</button><p id="ledger-form-status" class="form-status" role="status"></p></form></article>
+            <article class="card"><div class="section-heading"><div><p class="eyebrow">ALL ENTRIES</p><h3>全部流水</h3></div><span id="ledger-count" class="pill">0 笔</span></div><div id="ledger-list" class="ledger-list"></div></article>
+        </section>
+
+        <section id="view-monthly" class="view" aria-labelledby="monthly-title">
+            <div class="page-intro page-intro-row"><div><p class="eyebrow">MONTHLY REVIEW</p><h2 id="monthly-title">月度总结</h2><p>工资、额外收入和支出，放在同一张桌面上看。</p></div><label class="month-picker"><span>查看月份</span><input id="month-picker" type="month"></label></div>
+            <div class="summary-grid"><article class="summary-card income"><span>总收入</span><strong id="monthly-total-income">¥0</strong><small id="monthly-income-breakdown">工资 ¥0 · 额外收入 ¥0</small></article><article class="summary-card fixed"><span>固定支出</span><strong id="monthly-fixed-expense">¥0</strong><small>房租等不易改变的支出</small></article><article class="summary-card flexible"><span>弹性支出</span><strong id="monthly-flexible-expense">¥0</strong><small>可以观察和调整的支出</small></article><article class="summary-card balance"><span>月度结余</span><strong id="monthly-balance">¥0</strong><small id="monthly-balance-note">记账后更准确</small></article></div>
+            <article class="card"><div class="section-heading"><div><p class="eyebrow">CATEGORY VIEW</p><h3>这个月的钱去了哪里</h3></div></div><div id="monthly-category-list" class="category-list"></div></article>
+        </section>
+
+        <section id="view-fund" class="view" aria-labelledby="fund-title">
+            <div class="page-intro"><p class="eyebrow">FREEDOM FUND</p><h2 id="fund-title">自由基金</h2><p>给未来的自己留一块缓冲区，选择才不会被下一笔账单绑架。</p></div>
+            <div class="content-grid two-one"><article class="card"><div class="section-heading"><div><h3>你的安全垫</h3><p class="muted">目标和余额会保存在本机</p></div></div><form id="fund-form" class="settings-form"><label class="field"><span>自由基金目标</span><div class="input-prefix"><b>¥</b><input id="fund-goal" type="number" min="0" step="0.01" inputmode="decimal" required></div></label><label class="field"><span>当前已存金额</span><div class="input-prefix"><b>¥</b><input id="fund-current" type="number" min="0" step="0.01" inputmode="decimal" required></div></label><button class="primary-button" type="submit"><span data-icon="save"></span>保存基金进度</button><p id="fund-form-status" class="form-status" role="status"></p></form><div class="fund-progress-block"><div class="progress-label"><span>完成进度</span><strong id="fund-progress-label">0%</strong></div><div class="progress-track"><span id="fund-progress-bar"></span></div><p id="fund-meta">还差 ¥0</p></div></article><article class="card chart-card"><div class="section-heading"><div><p class="eyebrow">SIX MONTH VIEW</p><h3>存款曲线</h3></div><span class="pill">按当前结余推演</span></div><svg id="fund-chart" class="fund-chart" viewBox="0 0 640 280" role="img" aria-label="未来六个月自由基金存款曲线"><g class="chart-grid"></g><polyline class="chart-line" points="0,250 100,250 200,250 300,250 400,250 500,250 600,250"></polyline><g class="chart-points"></g><g class="chart-labels"></g></svg><p id="fund-safety" class="chart-caption">暂无支出样本，暂时无法估算安全垫月数。</p></article></div>
+        </section>
+
+        <section id="view-discover" class="view" aria-labelledby="discover-title">
+            <div class="page-intro"><p class="eyebrow">WHAT IF</p><h2 id="discover-title">有趣发现</h2><p>把“如果当时……”换成可以拖动、可以比较的数字。</p></div>
+            <div class="scenario-grid"><article class="card scenario-card"><div class="scenario-icon mint-icon"><span data-icon="train"></span></div><p class="eyebrow">COMMUTE</p><h3>如果少通勤一点</h3><p>每天往返通勤时长</p><div class="scenario-control"><input id="scenario-commute" type="range" min="0" max="4" step="0.25" value="1"><output id="scenario-commute-value">1 小时</output></div><div class="scenario-result"><span>模拟真实时薪</span><strong id="scenario-commute-result">—</strong></div></article><article class="card scenario-card"><div class="scenario-icon coral-icon"><span data-icon="bolt"></span></div><p class="eyebrow">OVERTIME</p><h3>如果少加一点班</h3><p>每月额外加班时长</p><div class="scenario-control"><input id="scenario-overtime" type="range" min="0" max="80" step="1" value="0"><output id="scenario-overtime-value">0 小时</output></div><div class="scenario-result"><span>模拟真实时薪</span><strong id="scenario-overtime-result">—</strong></div></article><article class="card scenario-card"><div class="scenario-icon yellow-icon"><span data-icon="spark"></span></div><p class="eyebrow">RAISE</p><h3>如果涨薪一点点</h3><p>月薪上涨幅度</p><div class="scenario-control"><input id="scenario-raise" type="range" min="0" max="50" step="1" value="10"><output id="scenario-raise-value">10%</output></div><div class="scenario-result"><span>模拟真实时薪</span><strong id="scenario-raise-result">—</strong></div></article></div>
+            <article class="card scenario-explain"><span data-icon="info"></span><p>情景只影响模拟结果，不会修改你保存的时薪参数。加班情景按“没有额外加班费”估算，更接近时间成本的变化。</p></article>
+        </section>
+    </main>
+</div>
+
+<nav id="mobile-nav" class="mobile-nav" aria-label="移动端主导航">
+    <button class="nav-button active" data-view="dashboard"><span data-icon="dashboard"></span><small>今日</small></button>
+    <button class="nav-button" data-view="hourly"><span data-icon="clock"></span><small>时薪</small></button>
+    <button class="nav-button" data-view="ledger"><span data-icon="wallet"></span><small>记账</small></button>
+    <button class="nav-button" data-view="monthly"><span data-icon="calendar"></span><small>月结</small></button>
+    <button class="nav-button" data-view="fund"><span data-icon="seed"></span><small>自由</small></button>
+    <button class="nav-button" data-view="discover"><span data-icon="spark"></span><small>发现</small></button>
+</nav>
+<script src="calculator.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
