@@ -20,6 +20,11 @@ assert.equal(calc.validateSnapshot({ ...validSnapshot, entries: [{ kind: 'expens
   category: '吃饭', entryDate: '2026-02-30', expenseType: 'flexible' }] }).ok, false);
 assert.equal(calc.validateSnapshot({ ...validSnapshot, entries: [{ kind: 'expense', amountCents: 1,
   category: '吃饭', entryDate: '2026-99-99', expenseType: 'flexible' }] }).ok, false);
+const malformedDateSnapshot = { ...validSnapshot, entries: [{ kind: 'expense', amountCents: 1,
+  category: '吃饭', entryDate: '2026-02-30', expenseType: 'flexible' }] };
+const malformedDateOriginal = JSON.parse(JSON.stringify(malformedDateSnapshot));
+assert.equal(calc.validateSnapshot(malformedDateSnapshot).ok, false);
+assert.deepEqual(malformedDateSnapshot, malformedDateOriginal);
 
 assert.equal(calc.workMinutesForRate(3200, 5496), 35);
 assert.equal(calc.workMinutesForRate(3200, 7000), 27);
@@ -43,6 +48,12 @@ const legacy = calc.migrateSnapshot({
 assert.equal(legacy.migrated, true);
 assert.equal(legacy.snapshot.salaryHistory[0].effectiveMonth, '2026-09');
 assert.equal(legacy.snapshot.entries.length, 1);
+
+assert.throws(() => calc.migrateSnapshot({
+  schemaVersion: 3,
+  settings: validSnapshot.settings,
+  entries: [],
+}, '2026-09'), /不支持的备份版本/);
 
 const undo = semantics.rememberUndo({ id: 7 }, 1000, 5000);
 assert.deepEqual(semantics.takeUndo(undo, 5999), { id: 7 });

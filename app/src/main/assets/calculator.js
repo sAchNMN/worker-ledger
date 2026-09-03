@@ -67,6 +67,7 @@
     }
     function migrateSnapshot(raw, importMonth) {
         if (raw && raw.schemaVersion === 2) return { snapshot: raw, migrated: false };
+        if (raw && raw.schemaVersion !== undefined) throw new Error('不支持的备份版本');
         const snapshot = Object.assign({}, raw, {
             schemaVersion: 2,
             settings: Object.assign({}, raw && raw.settings),

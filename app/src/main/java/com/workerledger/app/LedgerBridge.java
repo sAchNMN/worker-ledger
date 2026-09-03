@@ -23,6 +23,7 @@ public final class LedgerBridge {
     private final WebView webView;
     private final LedgerRepository repository;
     private String pendingExportJson;
+    private String pendingImportJson;
 
     LedgerBridge(Activity activity, WebView webView, LedgerRepository repository) {
         this.activity = activity;
@@ -74,8 +75,18 @@ public final class LedgerBridge {
     @JavascriptInterface
     public String deleteEntry(String idText) {
         try {
-            repository.deleteEntry(Long.parseLong(idText));
-            return success(JSONObject.NULL);
+            return success(repository.deleteEntry(Long.parseLong(idText)).toJson());
+        } catch (Exception error) {
+            return failure(error);
+        }
+    }
+
+    @JavascriptInterface
+    public String restoreEntry(String json) {
+        try {
+            LedgerModels.Entry entry = LedgerModels.Entry.fromJson(new JSONObject(json));
+            repository.restoreEntry(entry);
+            return success(entry.toJson());
         } catch (Exception error) {
             return failure(error);
         }
@@ -84,7 +95,7 @@ public final class LedgerBridge {
     @JavascriptInterface
     public void requestExport() {
         try {
-            pendingExportJson = repository.loadSnapshot();
+            pendingExportJson = repository.exportSnapshot(BuildConfig.VERSION_NAME);
             activity.runOnUiThread(() -> {
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -100,6 +111,7 @@ public final class LedgerBridge {
 
     @JavascriptInterface
     public void requestImport() {
+        pendingImportJson = null;
         activity.runOnUiThread(() -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -129,18 +141,46 @@ public final class LedgerBridge {
 
     void completeImport(Uri uri) {
         if (uri == null) {
-            notifyImport(false, "已取消导入", null);
+            notifyImportPreview(false, "已取消导入", null);
             return;
         }
         try (InputStream input = activity.getContentResolver().openInputStream(uri)) {
             if (input == null) {
                 throw new IllegalStateException("无法打开备份文件");
             }
-            String json = readLimited(input);
+            JSONObject preview = new JSONObject(repository.previewImport(readLimited(input)));
+            pendingImportJson = preview.getJSONObject("snapshot").toString();
+            preview.remove("snapshot");
+            notifyImportPreview(true, "备份已准备，请确认后导入", preview.toString());
+        } catch (Exception error) {
+            pendingImportJson = null;
+            notifyImportPreview(false, message(error), null);
+        }
+    }
+
+    @JavascriptInterface
+    public void confirmImport() {
+        String json = pendingImportJson;
+        if (json == null) {
+            notifyImport(false, "没有待确认的备份", null);
+            return;
+        }
+        try {
             repository.replaceFromSnapshot(json);
+            pendingImportJson = null;
             notifyImport(true, "备份已导入", repository.loadSnapshot());
         } catch (Exception error) {
             notifyImport(false, message(error), null);
+        }
+    }
+
+    @JavascriptInterface
+    public String cancelImport() {
+        pendingImportJson = null;
+        try {
+            return success(JSONObject.NULL);
+        } catch (Exception error) {
+            return failure(error);
         }
     }
 
@@ -191,6 +231,12 @@ public final class LedgerBridge {
         String snapshotArgument = snapshot == null ? "null" : JSONObject.quote(snapshot);
         callPage("window.AppNative && window.AppNative.onImportResult(" + ok + ","
                 + JSONObject.quote(message) + "," + snapshotArgument + ");");
+    }
+
+    private void notifyImportPreview(boolean ok, String message, String preview) {
+        String previewArgument = preview == null ? "null" : JSONObject.quote(preview);
+        callPage("window.AppNative && window.AppNative.onImportPreview(" + ok + ","
+                + JSONObject.quote(message) + "," + previewArgument + ");");
     }
 
     private void callPage(String script) {
