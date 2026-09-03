@@ -24,7 +24,7 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                 "entry_date TEXT NOT NULL," +
                 "expense_type TEXT," +
                 "created_at INTEGER NOT NULL," +
-                "updated_at INTEGER NOT NULL");
+                "updated_at INTEGER NOT NULL)");
         db.execSQL("CREATE TABLE user_settings (" +
                 "id INTEGER PRIMARY KEY," +
                 "monthly_take_home_cents INTEGER NOT NULL," +
@@ -36,7 +36,7 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                 "work_cost_cents_per_month INTEGER NOT NULL," +
                 "fund_goal_cents INTEGER NOT NULL," +
                 "fund_current_cents INTEGER NOT NULL," +
-                "updated_at INTEGER NOT NULL");
+                "updated_at INTEGER NOT NULL)");
         ContentValues values = new ContentValues();
         values.put("id", 1);
         values.put("monthly_take_home_cents", 0);
