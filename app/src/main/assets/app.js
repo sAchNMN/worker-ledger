@@ -224,8 +224,13 @@
             if (!input) return;
             const value = safeNumber(input.value);
             $(valueId).textContent = inputId === 'scenario-raise' ? `${value}%` : `${value} 小时`;
-            const result = calc.scenarioResult(settings, changes).scenario.hourly;
+            const outcome = calc.scenarioResult(settings, changes);
+            const baseline = outcome.baseline.hourly;
+            const result = outcome.scenario.hourly;
             $(resultId).textContent = result === null ? '—' : `${result.toFixed(2)} 元/时`;
+            const prefix = result !== null && baseline !== null && result - baseline >= 0 ? '+' : '';
+            $(resultId.replace('-result', '-baseline')).textContent = baseline === null ? '基线 —' : `基线 ${baseline.toFixed(2)} 元/时`;
+            $(resultId.replace('-result', '-delta')).textContent = result === null || baseline === null ? '变化 —' : `变化 ${prefix}${(result - baseline).toFixed(2)} 元/时`;
         });
     }
 
