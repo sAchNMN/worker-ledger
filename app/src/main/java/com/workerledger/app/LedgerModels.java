@@ -18,6 +18,7 @@ final class LedgerModels {
         long fundGoalCents;
         long fundCurrentCents;
         long updatedAt;
+        String salaryEffectiveMonth;
 
         static Settings defaults() {
             Settings settings = new Settings();
@@ -37,6 +38,9 @@ final class LedgerModels {
             settings.fundGoalCents = object.getLong("fundGoalCents");
             settings.fundCurrentCents = object.getLong("fundCurrentCents");
             settings.updatedAt = object.optLong("updatedAt", System.currentTimeMillis());
+            if (object.has("salaryEffectiveMonth") && !object.isNull("salaryEffectiveMonth")) {
+                settings.salaryEffectiveMonth = object.getString("salaryEffectiveMonth");
+            }
             return settings;
         }
 
@@ -66,6 +70,7 @@ final class LedgerModels {
         String expenseType;
         long createdAt;
         long updatedAt;
+        Long hourlyRateCentsPerHour;
 
         static Entry fromJson(JSONObject object) throws JSONException {
             Entry entry = new Entry();
@@ -78,6 +83,9 @@ final class LedgerModels {
             entry.expenseType = object.optString("expenseType", "");
             entry.createdAt = object.optLong("createdAt", System.currentTimeMillis());
             entry.updatedAt = object.optLong("updatedAt", entry.createdAt);
+            if (object.has("hourlyRateCentsPerHour") && !object.isNull("hourlyRateCentsPerHour")) {
+                entry.hourlyRateCentsPerHour = object.getLong("hourlyRateCentsPerHour");
+            }
             return entry;
         }
 
@@ -92,6 +100,7 @@ final class LedgerModels {
             object.put("expenseType", expenseType == null ? "" : expenseType);
             object.put("createdAt", createdAt);
             object.put("updatedAt", updatedAt);
+            object.put("hourlyRateCentsPerHour", hourlyRateCentsPerHour == null ? JSONObject.NULL : hourlyRateCentsPerHour);
             return object;
         }
     }
