@@ -11,6 +11,15 @@ assert.equal(calc.isValidIsoDate('2026-02-30'), false);
 assert.equal(calc.isValidIsoDate('2026-99-99'), false);
 assert.equal(calc.isValidIsoMonth('2026-09'), true);
 assert.equal(calc.isValidIsoMonth('2026-9'), false);
+const validSnapshot = { settings: {
+  monthlyTakeHomeCents: 1000000, payMonths: 12, workdaysPerMonth: 20,
+  onsiteHoursPerDay: 8, commuteHoursPerDay: 1, overtimeHoursPerMonth: 0,
+  workCostCentsPerMonth: 0, fundGoalCents: 0, fundCurrentCents: 0,
+}, entries: [] };
+assert.equal(calc.validateSnapshot({ ...validSnapshot, entries: [{ kind: 'expense', amountCents: 1,
+  category: '吃饭', entryDate: '2026-02-30', expenseType: 'flexible' }] }).ok, false);
+assert.equal(calc.validateSnapshot({ ...validSnapshot, entries: [{ kind: 'expense', amountCents: 1,
+  category: '吃饭', entryDate: '2026-99-99', expenseType: 'flexible' }] }).ok, false);
 
 assert.equal(calc.workMinutesForRate(3200, 5496), 35);
 assert.equal(calc.workMinutesForRate(3200, 7000), 27);

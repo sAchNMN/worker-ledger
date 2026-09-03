@@ -86,7 +86,7 @@
         if (typeof entry.category !== 'string' || !entry.category.trim()) {
             return '分类不能为空';
         }
-        if (typeof entry.entryDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.entryDate)) {
+        if (!isValidIsoDate(entry.entryDate)) {
             return '日期格式无效';
         }
         if (entry.kind === 'expense' && entry.expenseType !== 'fixed' && entry.expenseType !== 'flexible') {
