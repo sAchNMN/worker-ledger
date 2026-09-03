@@ -88,8 +88,10 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                     }
                 }
                 Double denominator = workdays * (onsite + commute) + overtime;
+                double calculatedRate = (salary * (double) payMonths) / (12d * denominator);
                 Long rate = salary > 0 && payMonths > 0 && Double.isFinite(denominator) && denominator > 0
-                        ? Math.round((salary * (double) payMonths) / (12d * denominator)) : null;
+                        && Double.isFinite(calculatedRate) && calculatedRate > 0 && calculatedRate <= 9007199254740990.5d
+                        ? Math.round(calculatedRate) : null;
                 if (rate != null && rate > 0) {
                     ContentValues entries = new ContentValues(); entries.put("hourly_rate_cents_per_hour", rate);
                     db.update("ledger_entries", entries, "hourly_rate_cents_per_hour IS NULL", null);
