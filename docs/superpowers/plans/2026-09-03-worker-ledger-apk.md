@@ -113,7 +113,7 @@
   const assert = require('node:assert/strict');
   const { calculateHourly, workMinutesForAmount, validateSnapshot } = require('../app/src/main/assets/calculator.js');
 
-  assert.equal(calculateHourly({ salaryCents: 1000000, payMonths: 12, workdays: 20, onsiteHours: 8, commuteHours: 1, overtimeHours: 0, workCostCents: 0 }), 192.31);
+  assert.equal(calculateHourly({ salaryCents: 1000000, payMonths: 12, workdays: 20, onsiteHours: 8, commuteHours: 1, overtimeHours: 0, workCostCents: 0 }), 55.56);
   assert.equal(workMinutesForAmount(3200, 54.96), 35);
   assert.equal(validateSnapshot({ settings: {}, entries: [] }).ok, false);
   console.log('smoke test passed');
