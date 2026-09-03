@@ -27,6 +27,7 @@ assert.equal(workMinutesForAmount(3200, 54.96), 35);
 assert.equal(validateSnapshot({ settings: {}, entries: [] }).ok, false);
 
 const snapshot = {
+  schemaVersion: 2,
   settings: {
     monthlyTakeHomeCents: 1000000,
     payMonths: 12,
@@ -38,6 +39,7 @@ const snapshot = {
     fundGoalCents: 10000000,
     fundCurrentCents: 200000,
   },
+  salaryHistory: [{ effectiveMonth: '2026-09', monthlyTakeHomeCents: 1000000 }],
   entries: [
     { id: 1, kind: 'income', amountCents: 50000, category: '奖金', note: '', entryDate: '2026-09-03', expenseType: '' },
     { id: 2, kind: 'expense', amountCents: 30000, category: '房租', note: '', entryDate: '2026-09-03', expenseType: 'fixed' },
