@@ -84,7 +84,7 @@ public final class LedgerBridge {
     @JavascriptInterface
     public String restoreEntry(String json) {
         try {
-            LedgerModels.Entry entry = LedgerModels.Entry.fromJson(new JSONObject(json));
+            LedgerModels.Entry entry = LedgerModels.Entry.fromStrictJson(new JSONObject(json));
             repository.restoreEntry(entry);
             return success(entry.toJson());
         } catch (Exception error) {

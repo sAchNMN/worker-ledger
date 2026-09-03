@@ -2,6 +2,7 @@
     'use strict';
 
     const calc = window.WorkerLedgerCalculator;
+    const semantics = window.WorkerLedgerSemantics;
     const iconPaths = {
         dashboard: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h5A1.5 1.5 0 0 1 12 5.5v5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 10.5v-5ZM16 5.5A1.5 1.5 0 0 1 17.5 4h5A1.5 1.5 0 0 1 24 5.5v5a1.5 1.5 0 0 1-1.5 1.5h-5a1.5 1.5 0 0 1-1.5-1.5v-5ZM4 18.5A1.5 1.5 0 0 1 5.5 17h5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 4 23.5v-5ZM16 18.5a1.5 1.5 0 0 1 1.5-1.5h5a1.5 1.5 0 0 1-1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5h-5a1.5 1.5 0 0 1-1.5-1.5v-5Z" fill="none" stroke="currentColor" stroke-width="1.8"/>',
         clock: '<circle cx="14" cy="14" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 9v5l3.5 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
@@ -39,6 +40,10 @@
         ledgerKind: 'expense',
         selectedMonth: '',
         toastTimer: null,
+        undo: null,
+        undoTimer: null,
+        quickExpenseTypeOverride: false,
+        ledgerExpenseTypeOverride: false,
     };
 
     const $ = (id) => document.getElementById(id);
@@ -54,6 +59,8 @@
     const icon = (name) => `<svg viewBox="0 0 28 28" aria-hidden="true">${iconPaths[name] || ''}</svg>`;
     const sortedEntries = () => state.snapshot.entries.slice().sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || '') || safeNumber(b.createdAt) - safeNumber(a.createdAt));
     const hourlyInput = (settings) => ({ salaryCents: settings.monthlyTakeHomeCents, payMonths: settings.payMonths, workdays: settings.workdaysPerMonth, onsiteHours: settings.onsiteHoursPerDay, commuteHours: settings.commuteHoursPerDay, overtimeHours: settings.overtimeHoursPerMonth, workCostCents: settings.workCostCentsPerMonth });
+    const asOfMonth = () => todayIso().slice(0, 7);
+    const summaryForMonth = (month) => semantics.monthlySummary(state.snapshot, month, asOfMonth());
 
     function setView(name) {
         state.activeView = pageNames[name] ? name : 'dashboard';
@@ -63,14 +70,23 @@
         window.scrollTo(0, 0);
     }
 
-    function showToast(message, isError) {
+    function showToast(message, isError, action, duration) {
         const toast = $('global-toast');
         if (!toast) return;
         toast.textContent = message;
+        if (action) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'text-button';
+            button.textContent = action.label;
+            button.addEventListener('click', action.handler);
+            toast.appendChild(document.createTextNode(' '));
+            toast.appendChild(button);
+        }
         toast.classList.toggle('error', Boolean(isError));
         toast.classList.add('show');
         window.clearTimeout(state.toastTimer);
-        state.toastTimer = window.setTimeout(() => toast.classList.remove('show'), 3200);
+        state.toastTimer = window.setTimeout(() => toast.classList.remove('show'), duration || 3200);
     }
 
     function showError(message) {
@@ -127,8 +143,8 @@
     }
 
     function entryMarkup(entry, withActions) {
-        const hourly = calc.calculateHourly(hourlyInput(state.snapshot.settings));
-        const minutes = entry.kind === 'expense' ? calc.workMinutesForAmount(entry.amountCents, hourly) : null;
+        const minutes = entry.kind === 'expense'
+            ? semantics.workMinutesForRate(entry.amountCents, entry.hourlyRateCentsPerHour) : null;
         const label = entry.note || entry.category;
         const detail = `${entry.category} · ${entry.entryDate}${entry.kind === 'expense' && entry.expenseType === 'fixed' ? ' · 固定' : ''}`;
         const time = minutes ? `≈ ${formatMinutes(minutes)}` : '';
@@ -138,7 +154,7 @@
     function renderDashboard() {
         const settings = state.snapshot.settings;
         const hourly = calc.calculateHourly(hourlyInput(settings));
-        const summary = calc.monthlySummary(state.snapshot, currentMonth());
+        const summary = summaryForMonth(currentMonth());
         const todayExpense = state.snapshot.entries.filter((entry) => entry.kind === 'expense' && entry.entryDate === todayIso()).reduce((sum, entry) => sum + entry.amountCents, 0);
         const goal = settings.fundGoalCents;
         const progress = goal > 0 ? Math.min(100, Math.round(settings.fundCurrentCents / goal * 100)) : 0;
@@ -158,6 +174,7 @@
         const settings = state.snapshot.settings;
         const values = { 'hourly-salary': settings.monthlyTakeHomeCents / 100, 'hourly-pay-months': settings.payMonths, 'hourly-workdays': settings.workdaysPerMonth, 'hourly-onsite': settings.onsiteHoursPerDay, 'hourly-commute': settings.commuteHoursPerDay, 'hourly-overtime': settings.overtimeHoursPerMonth, 'hourly-work-cost': settings.workCostCentsPerMonth / 100 };
         Object.keys(values).forEach((id) => { if ($(id) && document.activeElement !== $(id)) $(id).value = values[id]; });
+        if (!$('hourly-effective-month').value) $('hourly-effective-month').value = todayIso().slice(0, 7);
         const hourly = calc.calculateHourly(hourlyInput(settings));
         const annualIncome = settings.monthlyTakeHomeCents * settings.payMonths;
         const annualCost = settings.workCostCentsPerMonth * 12;
@@ -178,7 +195,7 @@
     function renderMonthly() {
         const month = currentMonth();
         if ($('month-picker') && document.activeElement !== $('month-picker')) $('month-picker').value = month;
-        const summary = calc.monthlySummary(state.snapshot, month);
+        const summary = summaryForMonth(month);
         $('monthly-total-income').textContent = money(summary.totalIncomeCents);
         $('monthly-income-breakdown').textContent = `工资 ${money(summary.salaryCents)} · 额外收入 ${money(summary.extraIncomeCents)}`;
         $('monthly-fixed-expense').textContent = money(summary.fixedExpenseCents);
@@ -194,7 +211,7 @@
 
     function renderFund() {
         const settings = state.snapshot.settings;
-        const projection = calc.fundProjection(state.snapshot, currentMonth(), 6);
+        const projection = semantics.fundProjection(state.snapshot, currentMonth(), 6, asOfMonth());
         const progress = settings.fundGoalCents > 0 ? Math.min(100, Math.round(settings.fundCurrentCents / settings.fundGoalCents * 100)) : 0;
         if ($('fund-goal') && document.activeElement !== $('fund-goal')) $('fund-goal').value = settings.fundGoalCents / 100;
         if ($('fund-current') && document.activeElement !== $('fund-current')) $('fund-current').value = settings.fundCurrentCents / 100;
@@ -212,7 +229,7 @@
     }
 
     function renderDiscover() {
-        const summary = calc.monthlySummary(state.snapshot, currentMonth());
+        const summary = summaryForMonth(currentMonth());
         const settings = Object.assign({}, state.snapshot.settings, { monthlyExpenseCents: summary.totalExpenseCents, monthlyExtraIncomeCents: summary.extraIncomeCents });
         const scenarios = [
             ['scenario-commute', 'scenario-commute-value', 'scenario-commute-result', { commuteHours: safeNumber($('scenario-commute')?.value) }],
@@ -249,6 +266,26 @@
         state[`${prefix}Kind`] = kind;
         form.querySelectorAll('.segment').forEach((button) => button.classList.toggle('active', button.dataset.kind === kind));
         form.querySelectorAll('.expense-only').forEach((element) => element.classList.toggle('hidden', kind !== 'expense'));
+        populateCategories(form, kind);
+        state[`${prefix}ExpenseTypeOverride`] = false;
+        applyExpenseType(form, false);
+    }
+
+    function populateCategories(form, kind, historicalCategory) {
+        const select = form.querySelector('[id$="-category"]');
+        const categories = semantics.categoriesFor(kind);
+        const category = historicalCategory || (categories.includes(select.value) ? select.value : categories[0]);
+        if (historicalCategory && !categories.includes(historicalCategory)) categories.unshift(historicalCategory);
+        select.innerHTML = categories.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('');
+        select.value = category;
+    }
+
+    function applyExpenseType(form, manualOverride) {
+        const prefix = form.id === 'quick-form' ? 'quick' : 'ledger';
+        const type = form.querySelector('[id$="-expense-type"]');
+        const category = form.querySelector('[id$="-category"]').value;
+        state[`${prefix}ExpenseTypeOverride`] = manualOverride;
+        type.value = semantics.resolveExpenseType(category, type.value, manualOverride);
     }
 
     function entryFromForm(form, prefix) {
@@ -260,7 +297,7 @@
     function submitEntry(form, prefix) {
         const entry = entryFromForm(form, prefix);
         const entries = state.snapshot.entries.filter((candidate) => candidate.id !== entry.id).concat(entry);
-        const validation = calc.validateSnapshot({ settings: state.snapshot.settings, entries });
+        const validation = calc.validateDraft(state.snapshot.settings, entries);
         const statusId = `${prefix}-form-status`;
         if (!validation.ok) { setStatus(statusId, validation.error, false); return; }
         const button = $(`${prefix}-submit`);
@@ -268,6 +305,7 @@
         const response = nativeCall(entry.id ? 'updateEntry' : 'insertEntry', JSON.stringify(entry));
         button.disabled = false;
         if (!response.ok) { setStatus(statusId, `保存失败：${response.error}，请重试。`, false); return; }
+        clearUndo();
         setStatus(statusId, '已保存', true);
         form.reset();
         if (prefix === 'quick') {
@@ -288,8 +326,10 @@
 
     function saveHourly(event) {
         event.preventDefault();
-        const settings = { monthlyTakeHomeCents: cents($('hourly-salary').value), payMonths: safeNumber($('hourly-pay-months').value), workdaysPerMonth: safeNumber($('hourly-workdays').value), onsiteHoursPerDay: safeNumber($('hourly-onsite').value), commuteHoursPerDay: safeNumber($('hourly-commute').value), overtimeHoursPerMonth: safeNumber($('hourly-overtime').value), workCostCentsPerMonth: cents($('hourly-work-cost').value), fundGoalCents: state.snapshot.settings.fundGoalCents, fundCurrentCents: state.snapshot.settings.fundCurrentCents };
-        const validation = calc.validateSnapshot({ settings, entries: state.snapshot.entries });
+        const effectiveMonth = $('hourly-effective-month').value;
+        if (!calc.isValidIsoMonth(effectiveMonth) || effectiveMonth > todayIso().slice(0, 7)) { setStatus('hourly-form-status', '工资生效月份必须是当前月或过去月份。', false); return; }
+        const settings = { monthlyTakeHomeCents: cents($('hourly-salary').value), payMonths: safeNumber($('hourly-pay-months').value), workdaysPerMonth: safeNumber($('hourly-workdays').value), onsiteHoursPerDay: safeNumber($('hourly-onsite').value), commuteHoursPerDay: safeNumber($('hourly-commute').value), overtimeHoursPerMonth: safeNumber($('hourly-overtime').value), workCostCentsPerMonth: cents($('hourly-work-cost').value), fundGoalCents: state.snapshot.settings.fundGoalCents, fundCurrentCents: state.snapshot.settings.fundCurrentCents, salaryEffectiveMonth: effectiveMonth };
+        const validation = calc.validateDraft(settings, state.snapshot.entries);
         if (!validation.ok) { setStatus('hourly-form-status', validation.error, false); return; }
         const button = $('hourly-save');
         button.disabled = true;
@@ -298,13 +338,14 @@
         if (!response.ok) { setStatus('hourly-form-status', `保存失败：${response.error}，请重试。`, false); return; }
         setStatus('hourly-form-status', '时薪参数已保存', true);
         loadSnapshot();
-        showToast('时薪参数已更新，所有工时换算已同步');
+        showToast('时薪参数已更新，后续流水将使用新的时薪快照');
     }
 
     function saveFund(event) {
         event.preventDefault();
         const settings = Object.assign({}, state.snapshot.settings, { fundGoalCents: cents($('fund-goal').value), fundCurrentCents: cents($('fund-current').value) });
-        const validation = calc.validateSnapshot({ settings, entries: state.snapshot.entries });
+        delete settings.salaryEffectiveMonth;
+        const validation = calc.validateDraft(settings, state.snapshot.entries);
         if (!validation.ok) { setStatus('fund-form-status', validation.error, false); return; }
         const response = nativeCall('saveSettings', JSON.stringify(settings));
         if (!response.ok) { setStatus('fund-form-status', `保存失败：${response.error}，请重试。`, false); return; }
@@ -320,21 +361,56 @@
         setView('ledger');
         $('ledger-id').value = entry.id;
         $('ledger-amount').value = entry.amountCents / 100;
-        $('ledger-category').value = entry.category;
         $('ledger-note').value = entry.note || '';
         $('ledger-date').value = entry.entryDate;
-        $('ledger-expense-type').value = entry.expenseType || 'flexible';
         $('ledger-submit').innerHTML = `${icon('save')}保存修改`;
         $('ledger-cancel').classList.remove('hidden');
         setKind($('ledger-form'), entry.kind);
+        populateCategories($('ledger-form'), entry.kind, entry.category);
+        $('ledger-expense-type').value = entry.expenseType || 'flexible';
+        state.ledgerExpenseTypeOverride = true;
     }
 
     function deleteEntry(id) {
-        if (!window.confirm('确定删除这笔流水吗？删除后无法在应用内撤销。')) return;
+        if (!window.confirm('确定删除这笔流水吗？')) return;
         const response = nativeCall('deleteEntry', String(id));
         if (!response.ok) { showToast(`删除失败：${response.error}，请重试。`, true); return; }
         loadSnapshot();
-        showToast('流水已删除');
+        state.undo = semantics.rememberUndo(response.data, Date.now(), 5000);
+        window.clearTimeout(state.undoTimer);
+        state.undoTimer = window.setTimeout(clearUndo, 5000);
+        showToast('流水已删除。', false, { label: '撤销', handler: restoreDeletedEntry }, 5000);
+    }
+
+    function clearUndo() {
+        state.undo = null;
+        window.clearTimeout(state.undoTimer);
+        state.undoTimer = null;
+    }
+
+    function restoreDeletedEntry() {
+        const entry = semantics.takeUndo(state.undo, Date.now());
+        if (!entry) { clearUndo(); return; }
+        const response = nativeCall('restoreEntry', JSON.stringify(entry));
+        if (!response.ok) { showToast(`撤销失败：${response.error}，请重试。`, true); return; }
+        clearUndo();
+        loadSnapshot();
+        showToast('流水已恢复');
+    }
+
+    function importPreviewMessage(preview) {
+        const timestamp = typeof preview.exportedAt === 'number'
+            ? preview.exportedAt
+            : typeof preview.exportedAt === 'string' && preview.exportedAt.trim() ? Number(preview.exportedAt) : NaN;
+        const exportedDate = Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp) : null;
+        const exportedAt = exportedDate && !Number.isNaN(exportedDate.getTime()) ? exportedDate.toLocaleString('zh-CN') : '未提供';
+        const dateRange = preview.dateRange && typeof preview.dateRange === 'object' ? preview.dateRange : {};
+        const start = typeof dateRange.start === 'string' && dateRange.start ? dateRange.start : '未提供';
+        const end = typeof dateRange.end === 'string' && dateRange.end ? dateRange.end : '未提供';
+        const entryCount = Number.isFinite(Number(preview.entryCount)) ? Number(preview.entryCount) : 0;
+        const salaryHistoryCount = Number.isFinite(Number(preview.salaryHistoryCount)) ? Number(preview.salaryHistoryCount) : 0;
+        const version = preview.schemaVersion === 'legacy' ? '旧版/无版本' : `v${preview.schemaVersion ?? '未知'}`;
+        return `备份版本：${version}\n导出时间：${exportedAt}\n流水：${entryCount} 笔\n日期范围：${start} 至 ${end}\n工资记录：${salaryHistoryCount} 条\n\n确认后将替换当前本机数据。是否继续？`;
     }
 
     function setup() {
@@ -353,6 +429,10 @@
         $('hourly-form').addEventListener('submit', saveHourly);
         $('fund-form').addEventListener('submit', saveFund);
         $('retry-button').addEventListener('click', loadSnapshot);
+        ['quick', 'ledger'].forEach((prefix) => {
+            $(`${prefix}-category`).addEventListener('change', () => applyExpenseType($(`${prefix}-form`), false));
+            $(`${prefix}-expense-type`).addEventListener('change', () => { state[`${prefix}ExpenseTypeOverride`] = true; });
+        });
         $('export-button').addEventListener('click', () => { if (!window.AndroidBridge) { showToast('本地数据接口不可用', true); return; } window.AndroidBridge.requestExport(); });
         $('import-button').addEventListener('click', () => { if (!window.AndroidBridge) { showToast('本地数据接口不可用', true); return; } window.AndroidBridge.requestImport(); });
         $('month-picker').addEventListener('change', (event) => { state.selectedMonth = event.target.value || iso.slice(0, 7); renderAll(); });
@@ -362,6 +442,14 @@
         window.AppNative = {
             onExportResult(ok, message) { showToast(message, !ok); },
             onImportResult(ok, message, snapshotJson) { if (!ok) { showToast(message, true); return; } try { state.snapshot = JSON.parse(snapshotJson); state.phase = 'ready'; renderAll(); showToast(message); } catch (error) { showToast('导入后的数据无法显示，请重试。', true); } },
+            onImportPreview(ok, message, previewJson) {
+                if (!ok) { showToast(message, true); return; }
+                try {
+                    const preview = JSON.parse(previewJson);
+                    if (window.confirm(importPreviewMessage(preview))) window.AndroidBridge.confirmImport();
+                    else nativeCall('cancelImport');
+                } catch (error) { nativeCall('cancelImport'); showToast('导入预览无法显示，已取消导入。', true); }
+            },
         };
         setKind($('quick-form'), 'expense');
         setKind($('ledger-form'), 'expense');

@@ -33,7 +33,8 @@
         }
         const annualIncomeYuan = (salaryCents * payMonths) / 100;
         const annualCostYuan = (workCostCents * 12) / 100;
-        return round((annualIncomeYuan - annualCostYuan) / annualHours, 2);
+        const hourly = round((annualIncomeYuan - annualCostYuan) / annualHours, 2);
+        return validPositive(hourly) ? hourly : null;
     }
 
     function workMinutesForAmount(amountCents, hourlyYuan) {
@@ -65,23 +66,38 @@
             && item.effectiveMonth <= month).sort((a, b) => a.effectiveMonth.localeCompare(b.effectiveMonth))
             .reduce((salary, item) => item.monthlyTakeHomeCents, 0);
     }
+    const MAX_SAFE = Number.MAX_SAFE_INTEGER;
+    const isSafeInteger = (value) => typeof value === 'number' && Number.isSafeInteger(value);
+    const isPositiveTimestamp = (value) => isSafeInteger(value) && value > 0;
+
     function migrateSnapshot(raw, importMonth) {
         if (raw && raw.schemaVersion === 2) return { snapshot: raw, migrated: false };
         if (raw && raw.schemaVersion !== undefined) throw new Error('不支持的备份版本');
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('备份格式无效');
+        if (!Array.isArray(raw.entries)) throw new Error('流水必须是数组');
+        const now = Date.now();
         const snapshot = Object.assign({}, raw, {
             schemaVersion: 2,
             settings: Object.assign({}, raw && raw.settings),
-            entries: Array.isArray(raw && raw.entries) ? raw.entries.slice() : [],
-            salaryHistory: [{ effectiveMonth: importMonth, monthlyTakeHomeCents: raw.settings.monthlyTakeHomeCents }],
+            entries: raw.entries.map((entry) => Object.assign({}, entry, {
+                id: entry.id === undefined ? 0 : entry.id,
+                createdAt: entry.createdAt === undefined ? now : entry.createdAt,
+                updatedAt: entry.updatedAt === undefined ? now : entry.updatedAt,
+                hourlyRateCentsPerHour: entry.hourlyRateCentsPerHour === undefined ? null : entry.hourlyRateCentsPerHour,
+            })),
+            salaryHistory: [{ effectiveMonth: importMonth, monthlyTakeHomeCents: raw.settings.monthlyTakeHomeCents,
+                createdAt: now, updatedAt: now }],
         });
+        if (snapshot.settings.updatedAt === undefined) snapshot.settings.updatedAt = now;
         return { snapshot, migrated: true };
     }
 
-    function validateEntry(entry) {
+    function validateEntry(entry, strict) {
         if (!entry || (entry.kind !== 'income' && entry.kind !== 'expense')) {
             return '流水类型无效';
         }
-        if (!Number.isInteger(number(entry.amountCents)) || !validPositive(entry.amountCents)) {
+        if ((strict ? !isSafeInteger(entry.amountCents) : !Number.isInteger(number(entry.amountCents)))
+            || !validPositive(entry.amountCents) || entry.amountCents > MAX_SAFE) {
             return '金额必须是大于 0 的整数分';
         }
         if (typeof entry.category !== 'string' || !entry.category.trim()) {
@@ -96,10 +112,26 @@
         if (entry.kind === 'income' && entry.expenseType) {
             return '收入不能设置固定或弹性';
         }
+        if (strict && (!Object.prototype.hasOwnProperty.call(entry, 'kind')
+            || !Object.prototype.hasOwnProperty.call(entry, 'category')
+            || !Object.prototype.hasOwnProperty.call(entry, 'note')
+            || !Object.prototype.hasOwnProperty.call(entry, 'entryDate')
+            || !Object.prototype.hasOwnProperty.call(entry, 'expenseType'))) return '流水字段缺失';
+        if (typeof entry.note !== 'string' && entry.note !== undefined) return '备注无效';
+        if (strict && typeof entry.note !== 'string') return '备注无效';
+        if (typeof entry.note === 'string' && entry.note.length > 80) return '备注不能超过 80 个字符';
+        if (strict && (typeof entry.kind !== 'string' || typeof entry.category !== 'string'
+            || typeof entry.entryDate !== 'string' || typeof entry.expenseType !== 'string')) return '流水字段类型无效';
+        if (strict) {
+            if (!isSafeInteger(entry.id) || entry.id <= 0 || !isPositiveTimestamp(entry.createdAt)
+                || !isPositiveTimestamp(entry.updatedAt) || !Object.prototype.hasOwnProperty.call(entry, 'hourlyRateCentsPerHour')
+                || (entry.hourlyRateCentsPerHour !== null && (!isSafeInteger(entry.hourlyRateCentsPerHour)
+                    || entry.hourlyRateCentsPerHour <= 0))) return '流水元数据无效';
+        }
         return null;
     }
 
-    function validateSettings(settings) {
+    function validateSettings(settings, strict) {
         const required = [
             'monthlyTakeHomeCents', 'payMonths', 'workdaysPerMonth', 'onsiteHoursPerDay',
             'commuteHoursPerDay', 'overtimeHoursPerMonth', 'workCostCentsPerMonth',
@@ -109,7 +141,8 @@
             return '设置缺失';
         }
         for (const key of required) {
-            if (!validNonNegative(settings[key])) {
+            if ((strict && typeof settings[key] !== 'number') || !validNonNegative(settings[key])
+                || (key.endsWith('Cents') && (!isSafeInteger(settings[key]) || settings[key] > MAX_SAFE))) {
                 return `设置项 ${key} 无效`;
             }
         }
@@ -120,16 +153,16 @@
         return null;
     }
 
-    function validateSnapshot(snapshot) {
-        const settingsError = validateSettings(snapshot && snapshot.settings);
+    function validateDraft(settings, entries) {
+        const settingsError = validateSettings(settings, false);
         if (settingsError) {
             return { ok: false, error: settingsError };
         }
-        if (!snapshot || !Array.isArray(snapshot.entries)) {
+        if (!Array.isArray(entries)) {
             return { ok: false, error: '流水数据格式无效' };
         }
-        for (const entry of snapshot.entries) {
-            const entryError = validateEntry(entry);
+        for (const entry of entries) {
+            const entryError = validateEntry(entry, false);
             if (entryError) {
                 return { ok: false, error: entryError };
             }
@@ -137,7 +170,42 @@
         return { ok: true };
     }
 
-    function monthlySummary(snapshot, month) {
+    function validateSnapshot(snapshot, options) {
+        if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) || snapshot.schemaVersion !== 2) {
+            return { ok: false, error: '备份版本无效' };
+        }
+        const settingsError = validateSettings(snapshot.settings, true);
+        if (settingsError || !isPositiveTimestamp(snapshot.settings.updatedAt)) {
+            return { ok: false, error: settingsError || '设置时间戳无效' };
+        }
+        if (!Array.isArray(snapshot.entries) || !Array.isArray(snapshot.salaryHistory)) {
+            return { ok: false, error: '备份数组格式无效' };
+        }
+        if (options && options.requireMetadata && (!isPositiveTimestamp(snapshot.exportedAt)
+            || typeof snapshot.appVersion !== 'string')) return { ok: false, error: '备份元数据无效' };
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const months = new Set(); const ids = new Set(); let latestSalary = null;
+        for (const item of snapshot.salaryHistory) {
+            if (!item || typeof item !== 'object' || !isValidIsoMonth(item.effectiveMonth)
+                || item.effectiveMonth > currentMonth
+                || !months.add(item.effectiveMonth) || !isSafeInteger(item.monthlyTakeHomeCents)
+                || item.monthlyTakeHomeCents < 0 || !isPositiveTimestamp(item.createdAt)
+                || !isPositiveTimestamp(item.updatedAt)) return { ok: false, error: '工资历史无效' };
+            if (latestSalary === null || item.effectiveMonth > latestSalary.month) latestSalary = {
+                month: item.effectiveMonth, salary: item.monthlyTakeHomeCents,
+            };
+        }
+        const expectedSalary = latestSalary === null ? 0 : latestSalary.salary;
+        if (snapshot.settings.monthlyTakeHomeCents !== expectedSalary) return { ok: false, error: '当前月薪与工资历史不一致' };
+        for (const entry of snapshot.entries) {
+            const entryError = validateEntry(entry, true);
+            if (entryError || !ids.add(entry.id)) return { ok: false, error: entryError || '流水 ID 重复' };
+        }
+        return { ok: true };
+    }
+
+    function monthlySummary(snapshot, month, asOfMonth) {
         const settings = snapshot.settings;
         const entries = snapshot.entries.filter((entry) => entry.entryDate.indexOf(month) === 0);
         const extraIncomeCents = entries.filter((entry) => entry.kind === 'income')
@@ -146,8 +214,11 @@
             .reduce((sum, entry) => sum + entry.amountCents, 0);
         const flexibleExpenseCents = entries.filter((entry) => entry.kind === 'expense' && entry.expenseType === 'flexible')
             .reduce((sum, entry) => sum + entry.amountCents, 0);
+        const effectiveAsOfMonth = asOfMonth === undefined ? month : asOfMonth;
+        const futureMonth = isValidIsoMonth(month) && isValidIsoMonth(effectiveAsOfMonth) && month > effectiveAsOfMonth;
         const salaryCents = Array.isArray(snapshot.salaryHistory)
-            ? salaryForMonth(snapshot.salaryHistory, month, month) : settings.monthlyTakeHomeCents;
+            ? salaryForMonth(snapshot.salaryHistory, month, effectiveAsOfMonth)
+            : futureMonth ? 0 : settings.monthlyTakeHomeCents;
         const totalIncomeCents = salaryCents + extraIncomeCents;
         return {
             salaryCents,
@@ -161,9 +232,9 @@
         };
     }
 
-    function fundProjection(snapshot, month, months) {
+    function fundProjection(snapshot, month, months, asOfMonth) {
         const count = Number.isInteger(months) && months > 0 ? months : 6;
-        const summary = monthlySummary(snapshot, month);
+        const summary = monthlySummary(snapshot, month, asOfMonth);
         const points = [];
         for (let index = 0; index <= count; index += 1) {
             points.push({ month: index, cents: Math.max(0, snapshot.settings.fundCurrentCents + summary.balanceCents * index) });
@@ -209,6 +280,7 @@
         calculateHourly,
         workMinutesForAmount,
         validateSnapshot,
+        validateDraft,
         monthlySummary,
         fundProjection,
         scenarioResult,

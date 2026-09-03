@@ -28,6 +28,8 @@ assert.equal(validateSnapshot({ settings: {}, entries: [] }).ok, false);
 
 const snapshot = {
   schemaVersion: 2,
+  exportedAt: 1704067200000,
+  appVersion: '1.0',
   settings: {
     monthlyTakeHomeCents: 1000000,
     payMonths: 12,
@@ -38,12 +40,14 @@ const snapshot = {
     workCostCentsPerMonth: 0,
     fundGoalCents: 10000000,
     fundCurrentCents: 200000,
+    updatedAt: 1704067200000,
   },
-  salaryHistory: [{ effectiveMonth: '2026-09', monthlyTakeHomeCents: 1000000 }],
+  salaryHistory: [{ effectiveMonth: '2026-09', monthlyTakeHomeCents: 1000000,
+    createdAt: 1704067200000, updatedAt: 1704067200000 }],
   entries: [
-    { id: 1, kind: 'income', amountCents: 50000, category: '奖金', note: '', entryDate: '2026-09-03', expenseType: '' },
-    { id: 2, kind: 'expense', amountCents: 30000, category: '房租', note: '', entryDate: '2026-09-03', expenseType: 'fixed' },
-    { id: 3, kind: 'expense', amountCents: 12000, category: '吃饭', note: '', entryDate: '2026-09-03', expenseType: 'flexible' },
+    { id: 1, kind: 'income', amountCents: 50000, category: '奖金', note: '', entryDate: '2026-09-03', expenseType: '', createdAt: 1704067200000, updatedAt: 1704067200000, hourlyRateCentsPerHour: null },
+    { id: 2, kind: 'expense', amountCents: 30000, category: '房租', note: '', entryDate: '2026-09-03', expenseType: 'fixed', createdAt: 1704067200000, updatedAt: 1704067200000, hourlyRateCentsPerHour: 5000 },
+    { id: 3, kind: 'expense', amountCents: 12000, category: '吃饭', note: '', entryDate: '2026-09-03', expenseType: 'flexible', createdAt: 1704067200000, updatedAt: 1704067200000, hourlyRateCentsPerHour: 5000 },
   ],
 };
 assert.equal(validateSnapshot(snapshot).ok, true);

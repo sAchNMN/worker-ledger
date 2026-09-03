@@ -27,17 +27,26 @@ final class LedgerModels {
         }
 
         static Settings fromJson(JSONObject object) throws JSONException {
+            return fromJson(object, false);
+        }
+
+        static Settings fromStrictJson(JSONObject object) throws JSONException {
+            return fromJson(object, true);
+        }
+
+        private static Settings fromJson(JSONObject object, boolean strict) throws JSONException {
             Settings settings = new Settings();
             settings.monthlyTakeHomeCents = safeInteger(object, "monthlyTakeHomeCents");
-            settings.payMonths = object.getDouble("payMonths");
-            settings.workdaysPerMonth = object.getDouble("workdaysPerMonth");
-            settings.onsiteHoursPerDay = object.getDouble("onsiteHoursPerDay");
-            settings.commuteHoursPerDay = object.getDouble("commuteHoursPerDay");
-            settings.overtimeHoursPerMonth = object.getDouble("overtimeHoursPerMonth");
+            settings.payMonths = strictNumber(object, "payMonths", strict);
+            settings.workdaysPerMonth = strictNumber(object, "workdaysPerMonth", strict);
+            settings.onsiteHoursPerDay = strictNumber(object, "onsiteHoursPerDay", strict);
+            settings.commuteHoursPerDay = strictNumber(object, "commuteHoursPerDay", strict);
+            settings.overtimeHoursPerMonth = strictNumber(object, "overtimeHoursPerMonth", strict);
             settings.workCostCentsPerMonth = safeInteger(object, "workCostCentsPerMonth");
             settings.fundGoalCents = safeInteger(object, "fundGoalCents");
             settings.fundCurrentCents = safeInteger(object, "fundCurrentCents");
-            settings.updatedAt = optionalSafeInteger(object, "updatedAt", System.currentTimeMillis());
+            settings.updatedAt = strict ? safeInteger(object, "updatedAt")
+                    : optionalSafeInteger(object, "updatedAt", System.currentTimeMillis());
             if (object.has("salaryEffectiveMonth") && !object.isNull("salaryEffectiveMonth")) {
                 settings.salaryEffectiveMonth = object.getString("salaryEffectiveMonth");
             }
@@ -73,16 +82,29 @@ final class LedgerModels {
         Long hourlyRateCentsPerHour;
 
         static Entry fromJson(JSONObject object) throws JSONException {
+            return fromJson(object, false);
+        }
+
+        static Entry fromStrictJson(JSONObject object) throws JSONException {
+            return fromJson(object, true);
+        }
+
+        private static Entry fromJson(JSONObject object, boolean strict) throws JSONException {
             Entry entry = new Entry();
-            entry.id = optionalSafeInteger(object, "id", 0);
-            entry.kind = object.getString("kind");
+            entry.id = strict ? safeInteger(object, "id") : optionalSafeInteger(object, "id", 0);
+            entry.kind = strictString(object, "kind", strict);
             entry.amountCents = safeInteger(object, "amountCents");
-            entry.category = object.getString("category");
-            entry.note = object.optString("note", "");
-            entry.entryDate = object.getString("entryDate");
-            entry.expenseType = object.optString("expenseType", "");
-            entry.createdAt = optionalSafeInteger(object, "createdAt", System.currentTimeMillis());
-            entry.updatedAt = optionalSafeInteger(object, "updatedAt", entry.createdAt);
+            entry.category = strictString(object, "category", strict);
+            entry.note = strictString(object, "note", strict);
+            entry.entryDate = strictString(object, "entryDate", strict);
+            entry.expenseType = strictString(object, "expenseType", strict);
+            entry.createdAt = strict ? safeInteger(object, "createdAt")
+                    : optionalSafeInteger(object, "createdAt", System.currentTimeMillis());
+            entry.updatedAt = strict ? safeInteger(object, "updatedAt")
+                    : optionalSafeInteger(object, "updatedAt", entry.createdAt);
+            if (strict && !object.has("hourlyRateCentsPerHour")) {
+                throw new IllegalArgumentException("hourlyRateCentsPerHour 缺失");
+            }
             if (object.has("hourlyRateCentsPerHour") && !object.isNull("hourlyRateCentsPerHour")) {
                 entry.hourlyRateCentsPerHour = safeInteger(object, "hourlyRateCentsPerHour");
             }
@@ -120,5 +142,17 @@ final class LedgerModels {
 
     private static long optionalSafeInteger(JSONObject object, String key, long fallback) throws JSONException {
         return object.has(key) && !object.isNull(key) ? safeInteger(object, key) : fallback;
+    }
+
+    private static double strictNumber(JSONObject object, String key, boolean strict) throws JSONException {
+        Object value = object.get(key);
+        if (strict && !(value instanceof Number)) throw new IllegalArgumentException(key + " 必须是数字");
+        return value instanceof Number ? ((Number) value).doubleValue() : object.getDouble(key);
+    }
+
+    private static String strictString(JSONObject object, String key, boolean strict) throws JSONException {
+        Object value = object.get(key);
+        if (strict && !(value instanceof String)) throw new IllegalArgumentException(key + " 必须是字符串");
+        return value instanceof String ? (String) value : object.getString(key);
     }
 }

@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Locale;
 
 final class LedgerDbHelper extends SQLiteOpenHelper {
@@ -73,7 +74,7 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                         "monthly_take_home_cents INTEGER NOT NULL," +
                         "created_at INTEGER NOT NULL," +
                         "updated_at INTEGER NOT NULL" + ")");
-                long salary = 0;
+                long salary = 0, workCost = 0;
                 double payMonths = 0, workdays = 0, onsite = 0, commute = 0, overtime = 0;
                 long updatedAt = System.currentTimeMillis();
                 try (android.database.Cursor cursor = db.query("user_settings", null, "id = ?", new String[]{"1"}, null, null, null)) {
@@ -84,24 +85,38 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                         onsite = cursor.getDouble(cursor.getColumnIndexOrThrow("onsite_hours_per_day"));
                         commute = cursor.getDouble(cursor.getColumnIndexOrThrow("commute_hours_per_day"));
                         overtime = cursor.getDouble(cursor.getColumnIndexOrThrow("overtime_hours_per_month"));
+                        workCost = cursor.getLong(cursor.getColumnIndexOrThrow("work_cost_cents_per_month"));
                         updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow("updated_at"));
                     }
                 }
-                Double denominator = workdays * (onsite + commute) + overtime;
-                double calculatedRate = (salary * (double) payMonths) / (12d * denominator);
-                Long rate = salary > 0 && payMonths > 0 && Double.isFinite(denominator) && denominator > 0
-                        && Double.isFinite(calculatedRate) && calculatedRate > 0 && calculatedRate <= 9007199254740990.5d
-                        ? Math.round(calculatedRate) : null;
+                double denominator = (workdays * (onsite + commute) + overtime) * 12d;
+                double annualNet = salary * (double) payMonths - workCost * 12d;
+                double calculatedRate = annualNet / denominator;
+                long roundedRate = Math.round(calculatedRate);
+                Long rate = annualNet > 0 && Double.isFinite(denominator) && denominator > 0
+                        && Double.isFinite(calculatedRate) && calculatedRate > 0 && calculatedRate <= 9007199254740991d
+                        && roundedRate > 0 && roundedRate <= 9007199254740991L ? roundedRate : null;
                 if (rate != null && rate > 0) {
                     ContentValues entries = new ContentValues(); entries.put("hourly_rate_cents_per_hour", rate);
                     db.update("ledger_entries", entries, "hourly_rate_cents_per_hour IS NULL", null);
                 }
                 ContentValues history = new ContentValues();
-                history.put("effective_month", new SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(new Date(updatedAt)));
+                history.put("effective_month", currentMonth(updatedAt));
                 history.put("monthly_take_home_cents", salary); history.put("created_at", updatedAt); history.put("updated_at", updatedAt);
-                db.insertWithOnConflict("salary_history", null, history, SQLiteDatabase.CONFLICT_REPLACE);
+                if (db.insertWithOnConflict("salary_history", null, history, SQLiteDatabase.CONFLICT_REPLACE) < 0) {
+                    throw new IllegalStateException("工资历史迁移失败");
+                }
                 db.setTransactionSuccessful();
             } finally { db.endTransaction(); }
         }
+    }
+
+    private static String currentMonth(long timestamp) {
+        GregorianCalendar calendar = new GregorianCalendar(Locale.US);
+        calendar.setGregorianChange(new Date(Long.MIN_VALUE));
+        calendar.setTimeInMillis(timestamp);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM", Locale.US);
+        format.setCalendar(calendar);
+        return format.format(calendar.getTime());
     }
 }

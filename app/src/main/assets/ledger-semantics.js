@@ -1,7 +1,7 @@
 (function (root, factory) {
-    if (typeof module === 'object' && module.exports) module.exports = factory();
-    else root.WorkerLedgerSemantics = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+    if (typeof module === 'object' && module.exports) module.exports = factory(require('./calculator.js'));
+    else root.WorkerLedgerSemantics = factory(root.WorkerLedgerCalculator);
+})(typeof globalThis === 'object' ? globalThis : this, function (calculator) {
     'use strict';
     const categories = {
         income: ['工资', '奖金', '兼职', '礼金', '报销', '其他'],
@@ -15,5 +15,14 @@
     }
     function rememberUndo(entry, now, ttlMs) { return { entry, expiresAt: now + ttlMs }; }
     function takeUndo(undo, now) { return undo && now < undo.expiresAt ? undo.entry : null; }
-    return { categoriesFor, defaultExpenseType, resolveExpenseType, rememberUndo, takeUndo };
+    return {
+        categoriesFor,
+        defaultExpenseType,
+        resolveExpenseType,
+        rememberUndo,
+        takeUndo,
+        workMinutesForRate: calculator.workMinutesForRate,
+        monthlySummary: calculator.monthlySummary,
+        fundProjection: calculator.fundProjection,
+    };
 });
