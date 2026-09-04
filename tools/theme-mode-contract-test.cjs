@@ -25,7 +25,7 @@ assert.match(themes, /parent=["']android:style\/Theme\.Material\.Light\.NoAction
   'the Android container must keep a compatible light base theme');
 assert.match(themes, /name=["']android:windowBackground["']>\s*@color\/cream_background/,
   'the light window background must use the app surface color');
-assert.match(nightColors, /name=["']cream_background["']>\s*#192622/,
+assert.match(nightColors, /name=["']cream_background["']>\s*#181D1B/,
   'night resources must provide a dark window background');
 assert.match(nightThemes, /name=["']android:windowBackground["']>\s*@color\/cream_background/,
   'the dark window background must use the app surface color');
@@ -43,11 +43,11 @@ assert.match(nightV31Themes, /name=["']android:windowSplashScreenBackground["']>
   'the dark Android 12 splash must use the app surface color');
 assert.match(nightV31Themes, /name=["']android:windowSplashScreenAnimatedIcon["']>\s*@drawable\/ic_launcher_foreground/,
   'the dark Android 12 splash must use the app icon');
-assert.match(lightIcon, /android:fillColor=["']#FFF8EE["']/,
+assert.match(lightIcon, /android:fillColor=["']#F6F7F3["']/,
   'the light launcher icon must keep its light palette');
-assert.match(darkIcon, /android:fillColor=["']#EAF4ED["']/,
+assert.match(darkIcon, /android:fillColor=["']#2A3B30["']/,
   'the dark launcher icon must use a high-contrast palette');
-assert.doesNotMatch(darkIcon, /android:fillColor=["']#FFF8EE["']/,
+assert.doesNotMatch(darkIcon, /android:fillColor=["']#F6F7F3["']/,
   'the dark launcher icon must not depend on the light palette');
 assert.match(activity, /setBackgroundColor\(getColor\(R\.color\.cream_background\)\)/,
   'the WebView background must follow night resources');
