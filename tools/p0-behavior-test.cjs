@@ -79,6 +79,10 @@ const strictSnapshot = {
 };
 assert.equal(calc.validateSnapshot(strictSnapshot, { requireMetadata: true }).ok, true);
 assert.equal(calc.validateSnapshot({ ...strictSnapshot, schemaVersion: 3 }).ok, false);
+const strictV3Snapshot = { ...strictSnapshot, schemaVersion: 3, templates: [{ id: 8, name: '通勤', kind: 'expense', category: '交通', note: '', expenseType: 'fixed' }] };
+assert.equal(calc.validateSnapshot(strictV3Snapshot, { requireMetadata: true }).ok, true);
+assert.equal(calc.validateSnapshot({ ...strictV3Snapshot, entries: [{ ...strictV3Snapshot.entries[0], id: Number.MAX_SAFE_INTEGER }] }).ok, false);
+assert.equal(calc.validateSnapshot({ ...strictV3Snapshot, templates: [{ ...strictV3Snapshot.templates[0], id: Number.MAX_SAFE_INTEGER }] }).ok, false);
 assert.equal(calc.validateSnapshot({ ...strictSnapshot, entries: [{ ...strictSnapshot.entries[0], amountCents: Number.MAX_SAFE_INTEGER + 1 }] }).ok, false);
 assert.equal(calc.validateSnapshot({ ...strictSnapshot, entries: [{ ...strictSnapshot.entries[0], note: 'x'.repeat(81) }] }).ok, false);
 assert.equal(calc.validateSnapshot({ ...strictSnapshot, salaryHistory: [{ effectiveMonth: '2024-13', monthlyTakeHomeCents: 1, createdAt: 1704067200000, updatedAt: 1704067200000 }] }).ok, false);
@@ -103,6 +107,10 @@ const legacy = calc.migrateSnapshot({
     note: '', entryDate: '2026-09-03', expenseType: 'flexible' }],
 }, '2026-09');
 assert.equal(legacy.migrated, true);
+const migratedV2 = calc.migrateSnapshot(strictSnapshot, '2026-09');
+assert.equal(migratedV2.migrated, true);
+assert.equal(migratedV2.snapshot.schemaVersion, 3);
+assert.deepEqual(migratedV2.snapshot.templates, []);
 assert.equal(legacy.snapshot.salaryHistory[0].effectiveMonth, '2026-09');
 assert.equal(legacy.snapshot.entries.length, 1);
 

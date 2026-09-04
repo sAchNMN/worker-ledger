@@ -21,7 +21,7 @@
 
 使用页面右上角的“导出备份”保存 JSON 文件。换手机前先导出；在新手机安装后使用“导入备份”恢复。导入文件会先校验并显示预览，只有确认后才会在一次数据库事务中替换流水、工资历史和设置；取消、文件过大或校验失败都不会覆盖现有数据。
 
-当前备份格式为 v2，包含 `schemaVersion`、`exportedAt`、`appVersion`、`settings`、`salaryHistory` 和 `entries`。没有 `schemaVersion` 的旧备份会按导入当月补齐工资历史、流水时间戳和 v2 字段；高于 v2 的备份会被拒绝，避免新版本数据被错误降级。
+当前备份格式为 v3，包含 `schemaVersion`、`exportedAt`、`appVersion`、`settings`、`templates`、`salaryHistory` 和 `entries`。v2 备份会迁移为空模板列表；没有 `schemaVersion` 的旧备份会按导入当月补齐工资历史、流水时间戳和 v3 字段；高于 v3 的备份会被拒绝，避免新版本数据被错误降级。
 
 ## 数据边界
 

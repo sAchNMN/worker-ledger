@@ -73,7 +73,7 @@
 
     function validateTemplate(template, strict) {
         if (!template || typeof template !== 'object' || Array.isArray(template)) return '模板格式无效';
-        if (strict && (!isSafeInteger(template.id) || template.id <= 0)) return '模板 ID 无效';
+        if (strict && (!isSafeInteger(template.id) || template.id <= 0 || template.id >= MAX_SAFE)) return '模板 ID 无效';
         if (typeof template.name !== 'string' || !template.name.trim() || template.name.length > 20) return '模板名称无效';
         if (template.kind !== 'income' && template.kind !== 'expense') return '模板类型无效';
         if (typeof template.category !== 'string' || !template.category.trim()) return '模板分类无效';
@@ -93,7 +93,9 @@
         for (const template of templates) {
             const error = validateTemplate(template, strict);
             const name = template && typeof template.name === 'string' ? template.name.trim() : '';
-            if (error || (strict && ids.has(template.id)) || names.has(name)) return error || '模板 ID 重复';
+            if (error) return error;
+            if (strict && ids.has(template.id)) return '模板 ID 重复';
+            if (names.has(name)) return '模板名称重复';
             if (strict) ids.add(template.id);
             if (name) names.add(name);
         }
@@ -124,7 +126,10 @@
     }
 
     function migrateSnapshot(raw, importMonth) {
-        if (raw && (raw.schemaVersion === 2 || raw.schemaVersion === 3)) return { snapshot: raw, migrated: false };
+        if (raw && raw.schemaVersion === 2) {
+            return { snapshot: Object.assign({}, raw, { schemaVersion: 3, templates: [] }), migrated: true };
+        }
+        if (raw && raw.schemaVersion === 3) return { snapshot: raw, migrated: false };
         if (raw && raw.schemaVersion !== undefined) throw new Error('不支持的备份版本');
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('备份格式无效');
         if (!Array.isArray(raw.entries)) throw new Error('流水必须是数组');
@@ -177,7 +182,7 @@
         if (strict && (typeof entry.kind !== 'string' || typeof entry.category !== 'string'
             || typeof entry.entryDate !== 'string' || typeof entry.expenseType !== 'string')) return '流水字段类型无效';
         if (strict) {
-            if (!isSafeInteger(entry.id) || entry.id <= 0 || !isPositiveTimestamp(entry.createdAt)
+            if (!isSafeInteger(entry.id) || entry.id <= 0 || entry.id >= MAX_SAFE || !isPositiveTimestamp(entry.createdAt)
                 || !isPositiveTimestamp(entry.updatedAt) || !Object.prototype.hasOwnProperty.call(entry, 'hourlyRateCentsPerHour')
                 || (entry.hourlyRateCentsPerHour !== null && (!isSafeInteger(entry.hourlyRateCentsPerHour)
                     || entry.hourlyRateCentsPerHour <= 0))) return '流水元数据无效';

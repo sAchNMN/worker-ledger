@@ -361,7 +361,10 @@
     }
 
     function nextTemplateId(templates) {
-        return Math.max(Date.now(), ...templates.map((template) => safeNumber(template.id) + 1));
+        const used = new Set(templates.map((template) => safeNumber(template.id)));
+        let id = Date.now();
+        while (used.has(id) || id >= Number.MAX_SAFE_INTEGER) id += 1;
+        return id;
     }
 
     function saveCurrentTemplate() {
