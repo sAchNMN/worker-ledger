@@ -8,3 +8,7 @@ keystore.properties
 *.jks
 *.keystore
 *.p12
+
+# 内部开发过程文件，不发布到公开仓库
+.superpowers/
+docs/superpowers/
