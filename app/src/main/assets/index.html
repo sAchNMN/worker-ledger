@@ -103,6 +103,21 @@
                     <p id="quick-form-status" class="form-status" role="status"></p>
                 </form>
             </article>
+
+            <article class="card purchase-card">
+                <div class="section-heading"><div><p class="eyebrow">BEFORE YOU BUY</p><h3>这件东西，值得买吗？</h3><p class="muted">先把价格换算成你的时间，再决定。</p></div><span class="shortcut-hint">消费前三秒</span></div>
+                <form id="purchase-form" class="purchase-form">
+                    <label class="field"><span>商品价格</span><div class="input-prefix"><b>¥</b><input id="purchase-amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required></div></label>
+                    <button class="primary-button" id="purchase-calculate" type="submit"><span data-icon="bolt"></span>开始换算</button>
+                    <p id="purchase-form-status" class="form-status" role="status"></p>
+                </form>
+                <div id="purchase-result" class="purchase-result hidden" aria-live="polite">
+                    <div class="purchase-stat purchase-time"><span>相当于工作</span><strong id="purchase-work-time">—</strong><small id="purchase-work-meta">按当前真实时薪计算</small></div>
+                    <div class="purchase-stat"><span>占本月可支配结余</span><strong id="purchase-balance-share">—</strong><small id="purchase-balance-meta">—</small></div>
+                    <div class="purchase-stat"><span>不买，基金缺口少</span><strong id="purchase-fund-gap">—</strong><small id="purchase-fund-meta">—</small></div>
+                    <div class="purchase-actions"><button class="primary-button" id="purchase-record" type="button"><span data-icon="receipt"></span>记为支出</button><button class="soft-button" id="purchase-skip" type="button">先不买</button></div>
+                </div>
+            </article>
         </section>
 
         <section id="view-hourly" class="view" aria-labelledby="hourly-title">

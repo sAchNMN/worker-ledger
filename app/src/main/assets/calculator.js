@@ -232,6 +232,35 @@
         };
     }
 
+    function prePurchaseDecision(snapshot, month, priceCents, asOfMonth) {
+        if (!snapshot || !snapshot.settings || !Array.isArray(snapshot.entries)
+            || !isValidIsoMonth(month) || (asOfMonth !== undefined && !isValidIsoMonth(asOfMonth))
+            || !Number.isSafeInteger(priceCents) || !validPositive(priceCents)) return null;
+        const summary = monthlySummary(snapshot, month, asOfMonth);
+        const settings = snapshot.settings;
+        const hourlyRateYuan = calculateHourly({
+            salaryCents: settings.monthlyTakeHomeCents,
+            payMonths: settings.payMonths,
+            workdays: settings.workdaysPerMonth,
+            onsiteHours: settings.onsiteHoursPerDay,
+            commuteHours: settings.commuteHoursPerDay,
+            overtimeHours: settings.overtimeHoursPerMonth,
+            workCostCents: settings.workCostCentsPerMonth,
+        });
+        const fundGapCents = Math.max(0, settings.fundGoalCents - settings.fundCurrentCents);
+        const fundGapReductionCents = Math.min(priceCents, fundGapCents);
+        return {
+            priceCents,
+            hourlyRateYuan,
+            workMinutes: workMinutesForAmount(priceCents, hourlyRateYuan),
+            disposableBalanceCents: summary.balanceCents,
+            balanceSharePercent: summary.balanceCents > 0 ? round(priceCents / summary.balanceCents * 100, 1) : null,
+            fundGapCents,
+            fundGapAfterNotBuyingCents: fundGapCents - fundGapReductionCents,
+            fundGapReductionPercent: fundGapCents > 0 ? round(fundGapReductionCents / fundGapCents * 100, 1) : 0,
+        };
+    }
+
     function fundProjection(snapshot, month, months, asOfMonth) {
         const count = Number.isInteger(months) && months > 0 ? months : 6;
         const summary = monthlySummary(snapshot, month, asOfMonth);
@@ -282,6 +311,7 @@
         validateSnapshot,
         validateDraft,
         monthlySummary,
+        prePurchaseDecision,
         fundProjection,
         scenarioResult,
         isValidIsoDate,

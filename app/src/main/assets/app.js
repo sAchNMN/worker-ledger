@@ -39,6 +39,7 @@
         quickKind: 'expense',
         ledgerKind: 'expense',
         selectedMonth: '',
+        purchasePriceCents: 0,
         toastTimer: null,
         undo: null,
         undoTimer: null,
@@ -170,6 +171,29 @@
         else recent.innerHTML = sortedEntries().slice(0, 4).map((entry) => entryMarkup(entry, false)).join('');
     }
 
+    function renderPurchaseCalculator() {
+        const input = $('purchase-amount');
+        const resultCard = $('purchase-result');
+        if (!input || !resultCard) return;
+        if (document.activeElement !== input) input.value = state.purchasePriceCents > 0 ? state.purchasePriceCents / 100 : '';
+        const result = state.purchasePriceCents > 0
+            ? calc.prePurchaseDecision(state.snapshot, asOfMonth(), state.purchasePriceCents, asOfMonth()) : null;
+        if (!result) {
+            resultCard.classList.add('hidden');
+            return;
+        }
+        resultCard.classList.remove('hidden');
+        $('purchase-work-time').textContent = result.workMinutes === null ? '—' : formatMinutes(result.workMinutes);
+        $('purchase-work-meta').textContent = result.hourlyRateYuan === null ? '先完成有效的时薪设置' : `按 ${result.hourlyRateYuan.toFixed(2)} 元/时计算`;
+        $('purchase-balance-share').textContent = result.balanceSharePercent === null ? '—' : `${result.balanceSharePercent}%`;
+        $('purchase-balance-meta').textContent = result.balanceSharePercent === null
+            ? '本月结余为 0 或负数，暂不计算占比' : `本月可支配结余 ${money(result.disposableBalanceCents)}`;
+        const fundReductionCents = result.fundGapCents - result.fundGapAfterNotBuyingCents;
+        $('purchase-fund-gap').textContent = money(fundReductionCents);
+        $('purchase-fund-meta').textContent = result.fundGapCents > 0
+            ? `占剩余缺口 ${result.fundGapReductionPercent}%` : '自由基金已达到目标';
+    }
+
     function renderHourly() {
         const settings = state.snapshot.settings;
         const values = { 'hourly-salary': settings.monthlyTakeHomeCents / 100, 'hourly-pay-months': settings.payMonths, 'hourly-workdays': settings.workdaysPerMonth, 'hourly-onsite': settings.onsiteHoursPerDay, 'hourly-commute': settings.commuteHoursPerDay, 'hourly-overtime': settings.overtimeHoursPerMonth, 'hourly-work-cost': settings.workCostCentsPerMonth / 100 };
@@ -253,6 +277,7 @@
 
     function renderAll() {
         renderDashboard();
+        renderPurchaseCalculator();
         renderHourly();
         renderLedger();
         renderMonthly();
@@ -322,6 +347,41 @@
         loadSnapshot();
         const hourly = calc.calculateHourly(hourlyInput(state.snapshot.settings));
         showToast(entry.kind === 'expense' ? `已记下 ${money(entry.amountCents)}，约 ${formatMinutes(calc.workMinutesForAmount(entry.amountCents, hourly))} 的工作时间` : `已记下收入 ${money(entry.amountCents)}`);
+    }
+
+    function calculatePurchase(event) {
+        event.preventDefault();
+        const priceCents = cents($('purchase-amount').value);
+        const result = calc.prePurchaseDecision(state.snapshot, asOfMonth(), priceCents, asOfMonth());
+        if (!result) {
+            state.purchasePriceCents = 0;
+            setStatus('purchase-form-status', '请输入大于 0 的有效金额。', false);
+            renderPurchaseCalculator();
+            return;
+        }
+        state.purchasePriceCents = priceCents;
+        setStatus('purchase-form-status', '换算完成，看看它要占用你多少时间。', true);
+        renderPurchaseCalculator();
+    }
+
+    function recordPurchase() {
+        if (!state.purchasePriceCents) return;
+        setView('dashboard');
+        setKind($('quick-form'), 'expense');
+        $('quick-amount').value = state.purchasePriceCents / 100;
+        $('quick-date').value = todayIso();
+        if (Array.from($('quick-category').options).some((option) => option.value === '购物')) $('quick-category').value = '购物';
+        applyExpenseType($('quick-form'), false);
+        setStatus('quick-form-status', '金额已带入，请确认分类和支出性质后保存。', true);
+        $('quick-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $('quick-amount').focus();
+    }
+
+    function skipPurchase() {
+        state.purchasePriceCents = 0;
+        setStatus('purchase-form-status', '', false);
+        renderPurchaseCalculator();
+        showToast('已跳过这次购买，没有写入流水');
     }
 
     function saveHourly(event) {
@@ -424,6 +484,9 @@
         document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.getAttribute('data-view'))));
         document.querySelectorAll('#quick-form .segment, #ledger-form .segment').forEach((button) => button.addEventListener('click', () => setKind(button.closest('form'), button.dataset.kind)));
         $('quick-form').addEventListener('submit', (event) => { event.preventDefault(); submitEntry($('quick-form'), 'quick'); });
+        $('purchase-form').addEventListener('submit', calculatePurchase);
+        $('purchase-record').addEventListener('click', recordPurchase);
+        $('purchase-skip').addEventListener('click', skipPurchase);
         $('ledger-form').addEventListener('submit', (event) => { event.preventDefault(); submitEntry($('ledger-form'), 'ledger'); });
         $('ledger-cancel').addEventListener('click', () => { $('ledger-form').reset(); $('ledger-id').value = ''; $('ledger-date').value = iso; $('ledger-cancel').classList.add('hidden'); $('ledger-submit').innerHTML = `${icon('plus')}记下这一笔`; state.editingId = null; setKind($('ledger-form'), 'expense'); });
         $('hourly-form').addEventListener('submit', saveHourly);
