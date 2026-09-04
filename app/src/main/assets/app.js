@@ -238,8 +238,10 @@
         $('monthly-income-breakdown').textContent = `工资 ${money(summary.salaryCents)} · 额外收入 ${money(summary.extraIncomeCents)}`;
         $('monthly-fixed-expense').textContent = money(summary.fixedExpenseCents);
         $('monthly-flexible-expense').textContent = money(summary.flexibleExpenseCents);
-        $('monthly-balance').textContent = money(summary.balanceCents);
-        $('monthly-balance-note').textContent = summary.balanceCents >= 0 ? '这个月还有余量' : '支出超过收入，值得回看';
+        const balance = $('monthly-balance');
+        balance.textContent = money(summary.balanceCents);
+        balance.classList.toggle('negative', summary.balanceCents < 0);
+        $('monthly-balance-note').textContent = summary.balanceCents >= 0 ? '这个月还有余量' : '本月赤字，值得回看';
         const totals = {};
         summary.entries.filter((entry) => entry.kind === 'expense').forEach((entry) => { totals[entry.category] = (totals[entry.category] || 0) + entry.amountCents; });
         const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]);
@@ -283,9 +285,13 @@
             const baseline = outcome.baseline.hourly;
             const result = outcome.scenario.hourly;
             $(resultId).textContent = result === null ? '—' : `${result.toFixed(2)} 元/时`;
-            const prefix = result !== null && baseline !== null && result - baseline >= 0 ? '+' : '';
+            const deltaElement = $(resultId.replace('-result', '-delta'));
+            const delta = result === null || baseline === null ? null : result - baseline;
+            const prefix = delta !== null && delta >= 0 ? '+' : '';
             $(resultId.replace('-result', '-baseline')).textContent = baseline === null ? '基线 —' : `基线 ${baseline.toFixed(2)} 元/时`;
-            $(resultId.replace('-result', '-delta')).textContent = result === null || baseline === null ? '变化 —' : `变化 ${prefix}${(result - baseline).toFixed(2)} 元/时`;
+            deltaElement.textContent = delta === null ? '变化 —' : `变化 ${prefix}${delta.toFixed(2)} 元/时`;
+            deltaElement.classList.toggle('positive', delta !== null && delta > 0);
+            deltaElement.classList.toggle('negative', delta !== null && delta < 0);
         });
     }
 

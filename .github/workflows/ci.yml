@@ -36,6 +36,9 @@ jobs:
             node "$test"
           done < <(find tools -maxdepth 1 -name '*test.cjs' -print | sort)
 
+      - name: 校验设计配色
+        run: node tools/verify-color-system.mjs
+
       - name: 构建 Android Debug APK
         run: |
           chmod +x ./gradlew
