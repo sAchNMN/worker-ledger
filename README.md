@@ -2,6 +2,15 @@
 
 一个可离线使用的 Android 个人工作台。应用不申请网络权限，流水和个人设置均写入手机本地 SQLite 数据库，不依赖浏览器缓存。
 
+## 从源码构建
+
+需要 JDK 17 和 Android SDK Platform 34；项目已包含 Gradle Wrapper，无需单独安装 Gradle。克隆后运行：
+
+- Windows：`gradlew.bat assembleDebug`
+- macOS/Linux：`./gradlew assembleDebug`
+
+生成的 APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。
+
 ## 安装
 
 1. 将 `app/build/outputs/apk/debug/app-debug.apk` 传到 Android 手机。
