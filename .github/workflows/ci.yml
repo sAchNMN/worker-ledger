@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 配置 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 配置 Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 运行 JavaScript 合约测试
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r test; do
+            node "$test"
+          done < <(find tools -maxdepth 1 -name '*test.cjs' -print | sort)
+
+      - name: 构建 Android Debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
