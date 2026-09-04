@@ -6,6 +6,7 @@
         <item name="android:windowBackground">@color/cream_background</item>
         <item name="android:navigationBarColor">@color/cream_background</item>
         <item name="android:statusBarColor">@color/cream_background</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:isLightTheme">false</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

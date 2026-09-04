@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#fff8ee">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff8ee">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#192622">
     <title>打工人小账本</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +19,6 @@
             <div><strong>打工人小账本</strong><span>把钱和时间都算明白</span></div>
         </div>
         <nav class="side-nav" aria-label="主导航">
-            <button class="nav-button active" data-view="dashboard"><span data-icon="dashboard"></span><span>今日驾驶舱</span></button>
             <button class="nav-button" data-view="hourly"><span data-icon="clock"></span><span>我的时薪</span></button>
             <button class="nav-button" data-view="ledger"><span data-icon="wallet"></span><span>10 秒记账</span></button>
             <button class="nav-button" data-view="monthly"><span data-icon="calendar"></span><span>月度总结</span></button>
@@ -32,12 +33,7 @@
 
     <main class="main-area">
         <header class="topbar">
-            <div>
-                <p class="eyebrow">PERSONAL WORKBENCH</p>
-                <h1 id="page-title">今日驾驶舱</h1>
-            </div>
             <div class="topbar-actions">
-                <button class="icon-button" id="theme-button" title="切换深色" aria-label="切换深色"><span data-icon="moon"></span></button>
                 <button class="soft-button" id="export-button"><span data-icon="download"></span>导出备份</button>
                 <button class="soft-button" id="import-button"><span data-icon="upload"></span>导入备份</button>
             </div>
@@ -176,7 +172,7 @@
 </div>
 
 <nav id="mobile-nav" class="mobile-nav" aria-label="移动端主导航">
-    <button class="nav-button active" data-view="dashboard"><span data-icon="dashboard"></span><small>今日</small></button>
+    <button class="nav-button active" data-view="dashboard"><span data-icon="dashboard"></span><small>主页</small></button>
     <button class="nav-button" data-view="hourly"><span data-icon="clock"></span><small>时薪</small></button>
     <button class="nav-button" data-view="ledger"><span data-icon="wallet"></span><small>记账</small></button>
     <button class="nav-button" data-view="monthly"><span data-icon="calendar"></span><small>月结</small></button>

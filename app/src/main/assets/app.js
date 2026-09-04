@@ -10,7 +10,6 @@
         calendar: '<rect x="4" y="5.5" width="20" height="19" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v4M20 3.5v4M4 10h20M9 15h2M15 15h2M9 19h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
         seed: '<path d="M14 23V13M14 16c-5 0-7-3-7-7 5 0 7 3 7 7ZM14 13c0-5 3-7 7-7 0 5-2 7-7 7Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
         spark: '<path d="m14 3 1.7 7.3L23 12l-7.3 1.7L14 21l-1.7-7.3L5 12l7.3-1.7L14 3ZM22 19l.6 2.4L25 22l-2.4.6L22 25l-.6-2.4L19 22l2.4-.6L22 19Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
-        moon: '<path d="M22 17.5A9 9 0 0 1 10.5 6 9.5 9.5 0 1 0 22 17.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
         download: '<path d="M14 4v13M9 12l5 5 5-5M5 21h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
         upload: '<path d="M14 18V5M9 10l5-5 5 5M5 21h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
         alert: '<path d="M14 4 3.7 22h20.6L14 4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 10v5M14 18.5v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
@@ -59,6 +58,13 @@
     const currentMonth = () => state.selectedMonth || todayIso().slice(0, 7);
     const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
     const icon = (name) => `<svg viewBox="0 0 28 28" aria-hidden="true">${iconPaths[name] || ''}</svg>`;
+
+    function renderStaticIcons() {
+        document.querySelectorAll('[data-icon]').forEach((element) => {
+            element.innerHTML = icon(element.getAttribute('data-icon'));
+        });
+    }
+
     const sortedEntries = () => state.snapshot.entries.slice().sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || '') || safeNumber(b.createdAt) - safeNumber(a.createdAt));
     const hourlyInput = (settings) => ({ salaryCents: settings.monthlyTakeHomeCents, payMonths: settings.payMonths, workdays: settings.workdaysPerMonth, onsiteHours: settings.onsiteHoursPerDay, commuteHours: settings.commuteHoursPerDay, overtimeHours: settings.overtimeHoursPerMonth, workCostCents: settings.workCostCentsPerMonth });
     const asOfMonth = () => todayIso().slice(0, 7);
@@ -68,7 +74,6 @@
         state.activeView = pageNames[name] ? name : 'dashboard';
         document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.id === `view-${state.activeView}`));
         document.querySelectorAll('[data-view]').forEach((button) => button.classList.toggle('active', button.getAttribute('data-view') === state.activeView));
-        if ($('page-title')) $('page-title').textContent = pageNames[state.activeView];
         window.scrollTo(0, 0);
     }
 
@@ -560,6 +565,7 @@
     }
 
     function setup() {
+        renderStaticIcons();
         const iso = todayIso();
         $('quick-date').value = iso;
         $('ledger-date').value = iso;

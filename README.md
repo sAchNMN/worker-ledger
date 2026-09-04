@@ -29,3 +29,7 @@
 - Android 系统备份已关闭；应用数据不会通过系统自动备份或恢复。
 - 不提供云同步，也不提供跨设备自动同步；跨设备迁移必须手动导出/导入备份文件。
 - 当前 APK 是 debug 签名构建，适合个人安装使用。若需要在不同电脑上稳定覆盖升级，请由用户创建并安全保管自己的 Release keystore，并在本机根目录创建未提交的 `keystore.properties`，填写 `storeFile`、`storePassword`、`keyAlias`、`keyPassword`。没有该本地配置时，debug 构建可用，Release 仍可编译为未签名包；不要把 keystore 或其密码提交到仓库。
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE) 开源。你可以自由使用、修改和分发，但请保留原许可声明。

@@ -7,5 +7,7 @@
         <item name="android:navigationBarColor">@color/cream_background</item>
         <item name="android:statusBarColor">@color/cream_background</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowSplashScreenBackground">@color/cream_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
     </style>
 </resources>
