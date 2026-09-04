@@ -12,7 +12,7 @@ import java.util.Locale;
 
 final class LedgerDbHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "worker-ledger.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     LedgerDbHelper(Context context) {
         super(context.getApplicationContext(), DATABASE_NAME, null, DATABASE_VERSION);
@@ -42,6 +42,7 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                 "work_cost_cents_per_month INTEGER NOT NULL," +
                 "fund_goal_cents INTEGER NOT NULL," +
                 "fund_current_cents INTEGER NOT NULL," +
+                "templates_json TEXT NOT NULL," +
                 "updated_at INTEGER NOT NULL)");
         ContentValues values = new ContentValues();
         values.put("id", 1);
@@ -54,6 +55,7 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
         values.put("work_cost_cents_per_month", 0);
         values.put("fund_goal_cents", 0);
         values.put("fund_current_cents", 0);
+        values.put("templates_json", "[]");
         values.put("updated_at", System.currentTimeMillis());
         db.insertOrThrow("user_settings", null, values);
         db.execSQL("CREATE TABLE salary_history (" +
@@ -108,6 +110,9 @@ final class LedgerDbHelper extends SQLiteOpenHelper {
                 }
                 db.setTransactionSuccessful();
             } finally { db.endTransaction(); }
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE user_settings ADD COLUMN templates_json TEXT NOT NULL DEFAULT '[]'");
         }
     }
 

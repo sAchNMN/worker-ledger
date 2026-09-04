@@ -51,6 +51,16 @@ public final class LedgerBridge {
     }
 
     @JavascriptInterface
+    public String saveTemplates(String json) {
+        try {
+            repository.saveTemplates(json);
+            return success(JSONObject.NULL);
+        } catch (Exception error) {
+            return failure(error);
+        }
+    }
+
+    @JavascriptInterface
     public String insertEntry(String json) {
         try {
             long id = repository.insertEntry(LedgerModels.Entry.fromJson(new JSONObject(json)));

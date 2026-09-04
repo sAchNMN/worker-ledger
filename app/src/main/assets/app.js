@@ -33,7 +33,7 @@
     };
     const state = {
         phase: 'loading',
-        snapshot: { settings: Object.assign({}, defaults), entries: [] },
+        snapshot: { settings: Object.assign({}, defaults), entries: [], templates: [] },
         activeView: 'dashboard',
         editingId: null,
         quickKind: 'expense',
@@ -150,7 +150,7 @@
         const label = entry.note || entry.category;
         const detail = `${entry.category} · ${entry.entryDate}${entry.kind === 'expense' && entry.expenseType === 'fixed' ? ' · 固定' : ''}`;
         const time = minutes ? `≈ ${formatMinutes(minutes)}` : '';
-        return `<div class="${withActions ? 'ledger-item' : 'recent-item'}"><div class="entry-badge ${entry.kind === 'expense' ? 'expense' : ''}">${icon(entry.kind === 'expense' ? 'receipt' : 'seed')}</div><div class="entry-main"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div><div class="entry-amount ${entry.kind === 'income' ? 'income' : ''}"><strong>${entry.kind === 'income' ? '+' : '-'}${money(entry.amountCents)}</strong><span>${time}</span></div>${withActions ? `<div class="item-actions"><button type="button" data-edit-id="${entry.id}" aria-label="编辑 ${esc(label)}">${icon('edit')}</button><button type="button" data-delete-id="${entry.id}" aria-label="删除 ${esc(label)}">${icon('trash')}</button></div>` : ''}</div>`;
+        return `<div class="${withActions ? 'ledger-item' : 'recent-item'}"><div class="entry-badge ${entry.kind === 'expense' ? 'expense' : ''}">${icon(entry.kind === 'expense' ? 'receipt' : 'seed')}</div><div class="entry-main"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div><div class="entry-amount ${entry.kind === 'income' ? 'income' : ''}"><strong>${entry.kind === 'income' ? '+' : '-'}${money(entry.amountCents)}</strong><span>${time}</span></div><div class="item-actions"><button type="button" data-repeat-entry="${entry.id}" aria-label="再记一笔 ${esc(label)}">${icon('plus')}</button>${withActions ? `<button type="button" data-edit-id="${entry.id}" aria-label="编辑 ${esc(label)}">${icon('edit')}</button><button type="button" data-delete-id="${entry.id}" aria-label="删除 ${esc(label)}">${icon('trash')}</button>` : ''}</div></div>`;
     }
 
     function renderDashboard() {
@@ -217,6 +217,14 @@
         list.innerHTML = state.snapshot.entries.length ? sortedEntries().map((entry) => entryMarkup(entry, true)).join('') : '<p class="list-empty">还没有流水。上面的表单可以在 10 秒内记下一笔。</p>';
     }
 
+    function renderTemplates() {
+        const templates = Array.isArray(state.snapshot.templates) ? state.snapshot.templates : [];
+        $('template-count').textContent = `${templates.length}/5`;
+        $('quick-templates').innerHTML = templates.length
+            ? templates.map((template) => `<div class="template-item"><button type="button" class="template-use" data-use-template="${template.id}"><strong>${esc(template.name)}</strong><span>${esc(template.category)}${template.note ? ` · ${esc(template.note)}` : ''}</span></button><button type="button" class="template-delete" data-delete-template="${template.id}" aria-label="删除模板 ${esc(template.name)}">${icon('trash')}</button></div>`).join('')
+            : '<p class="list-empty">还没有模板。填写分类和备注后，可以保存一个常用组合。</p>';
+    }
+
     function renderMonthly() {
         const month = currentMonth();
         if ($('month-picker') && document.activeElement !== $('month-picker')) $('month-picker').value = month;
@@ -281,6 +289,7 @@
         renderPurchaseCalculator();
         renderHourly();
         renderLedger();
+        renderTemplates();
         renderMonthly();
         renderFund();
         renderDiscover();
@@ -318,6 +327,72 @@
         const kind = state[`${prefix}Kind`];
         const id = prefix === 'ledger' ? safeNumber($('ledger-id').value) : 0;
         return { id, kind, amountCents: cents($(`${prefix}-amount`).value), category: $(`${prefix}-category`).value, note: $(`${prefix}-note`).value.trim(), entryDate: $(`${prefix}-date`).value, expenseType: kind === 'expense' ? $(`${prefix}-expense-type`).value : '' };
+    }
+
+    function applyQuickDraft(draft, message) {
+        const form = $('quick-form');
+        setKind(form, draft.kind);
+        populateCategories(form, draft.kind, draft.category);
+        $('quick-amount').value = '';
+        $('quick-date').value = draft.entryDate;
+        $('quick-note').value = draft.note;
+        if (draft.kind === 'expense') {
+            $('quick-expense-type').value = draft.expenseType;
+            state.quickExpenseTypeOverride = true;
+        }
+        setStatus('quick-form-status', message, true);
+        setView('dashboard');
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $('quick-amount').focus();
+    }
+
+    function repeatEntry(id) {
+        const entry = state.snapshot.entries.find((candidate) => candidate.id === id);
+        const draft = semantics.repeatEntryDraft(entry, todayIso());
+        if (!draft) { showToast('这笔流水无法再次带入。', true); return; }
+        applyQuickDraft(draft, '已带入上一笔设置，金额留空，请确认后保存。');
+    }
+
+    function applyTemplate(id) {
+        const template = (state.snapshot.templates || []).find((candidate) => candidate.id === id);
+        const draft = semantics.templateDraft(template, todayIso());
+        if (!draft) { showToast('模板已失效，请删除后重新保存。', true); return; }
+        applyQuickDraft(draft, '已套用模板，金额留空，请填写后保存。');
+    }
+
+    function nextTemplateId(templates) {
+        return Math.max(Date.now(), ...templates.map((template) => safeNumber(template.id) + 1));
+    }
+
+    function saveCurrentTemplate() {
+        const name = $('template-name').value.trim();
+        const templates = Array.isArray(state.snapshot.templates) ? state.snapshot.templates : [];
+        const template = {
+            id: nextTemplateId(templates),
+            name,
+            kind: state.quickKind,
+            category: $('quick-category').value,
+            note: $('quick-note').value.trim(),
+            expenseType: state.quickKind === 'expense' ? $('quick-expense-type').value : '',
+        };
+        const validation = semantics.validateTemplates(templates.concat(template));
+        if (!name || !validation.ok) {
+            setStatus('template-status', !name ? '请输入模板名称。' : validation.error, false);
+            return;
+        }
+        const response = nativeCall('saveTemplates', JSON.stringify(templates.concat(template)));
+        if (!response.ok) { setStatus('template-status', `保存失败：${response.error}`, false); return; }
+        $('template-name').value = '';
+        setStatus('template-status', '模板已保存。', true);
+        loadSnapshot();
+    }
+
+    function deleteTemplate(id) {
+        const templates = (state.snapshot.templates || []).filter((template) => template.id !== id);
+        const response = nativeCall('saveTemplates', JSON.stringify(templates));
+        if (!response.ok) { showToast(`模板删除失败：${response.error}`, true); return; }
+        loadSnapshot();
+        showToast('模板已删除。');
     }
 
     function submitEntry(form, prefix) {
@@ -476,8 +551,9 @@
         const end = typeof dateRange.end === 'string' && dateRange.end ? dateRange.end : '未提供';
         const entryCount = Number.isFinite(Number(preview.entryCount)) ? Number(preview.entryCount) : 0;
         const salaryHistoryCount = Number.isFinite(Number(preview.salaryHistoryCount)) ? Number(preview.salaryHistoryCount) : 0;
+        const templateCount = Number.isFinite(Number(preview.templateCount)) ? Number(preview.templateCount) : 0;
         const version = preview.schemaVersion === 'legacy' ? '旧版/无版本' : `v${preview.schemaVersion ?? '未知'}`;
-        return `备份版本：${version}\n导出时间：${exportedAt}\n流水：${entryCount} 笔\n日期范围：${start} 至 ${end}\n工资记录：${salaryHistoryCount} 条\n\n确认后将替换当前本机数据。是否继续？`;
+        return `备份版本：${version}\n导出时间：${exportedAt}\n流水：${entryCount} 笔\n日期范围：${start} 至 ${end}\n工资记录：${salaryHistoryCount} 条\n常用模板：${templateCount} 个\n\n确认后将替换当前本机数据。是否继续？`;
     }
 
     function setup() {
@@ -491,6 +567,13 @@
         document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.getAttribute('data-view'))));
         document.querySelectorAll('#quick-form .segment, #ledger-form .segment').forEach((button) => button.addEventListener('click', () => setKind(button.closest('form'), button.dataset.kind)));
         $('quick-form').addEventListener('submit', (event) => { event.preventDefault(); submitEntry($('quick-form'), 'quick'); });
+        $('template-save').addEventListener('click', saveCurrentTemplate);
+        $('quick-templates').addEventListener('click', (event) => {
+            const use = event.target.closest('[data-use-template]');
+            const remove = event.target.closest('[data-delete-template]');
+            if (use) applyTemplate(Number(use.dataset.useTemplate));
+            if (remove) deleteTemplate(Number(remove.dataset.deleteTemplate));
+        });
         $('purchase-form').addEventListener('submit', calculatePurchase);
         $('purchase-record').addEventListener('click', recordPurchase);
         $('purchase-skip').addEventListener('click', skipPurchase);
@@ -508,7 +591,15 @@
         $('month-picker').addEventListener('change', (event) => { state.selectedMonth = event.target.value || iso.slice(0, 7); renderAll(); });
         ['scenario-commute', 'scenario-overtime', 'scenario-raise'].forEach((id) => $(id).addEventListener('input', renderDiscover));
         $('formula-toggle').addEventListener('click', () => { const formula = $('hourly-formula'); const hidden = formula.classList.toggle('hidden'); $('formula-toggle').textContent = hidden ? '展开' : '收起'; });
-        $('ledger-list').addEventListener('click', (event) => { const edit = event.target.closest('[data-edit-id]'); const remove = event.target.closest('[data-delete-id]'); if (edit) editEntry(Number(edit.dataset.editId)); if (remove) deleteEntry(Number(remove.dataset.deleteId)); });
+        ['dashboard-recent-list', 'ledger-list'].forEach((id) => $(id).addEventListener('click', (event) => {
+            const repeat = event.target.closest('[data-repeat-entry]');
+            if (repeat) repeatEntry(Number(repeat.dataset.repeatEntry));
+            if (id !== 'ledger-list') return;
+            const edit = event.target.closest('[data-edit-id]');
+            const remove = event.target.closest('[data-delete-id]');
+            if (edit) editEntry(Number(edit.dataset.editId));
+            if (remove) deleteEntry(Number(remove.dataset.deleteId));
+        }));
         window.AppNative = {
             onExportResult(ok, message) { showToast(message, !ok); },
             onImportResult(ok, message, snapshotJson) { if (!ok) { showToast(message, true); return; } try { state.snapshot = JSON.parse(snapshotJson); state.phase = 'ready'; renderAll(); showToast(message); } catch (error) { showToast('导入后的数据无法显示，请重试。', true); } },

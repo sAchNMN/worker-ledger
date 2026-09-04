@@ -13,12 +13,21 @@
         return manualOverride && (currentType === 'fixed' || currentType === 'flexible')
             ? currentType : defaultExpenseType(category);
     }
+    function repeatEntryDraft(entry, today) { return calculator.repeatEntryDraft(entry, today); }
+    function templateDraft(template, today) { return calculator.templateDraft(template, today); }
+    function validateTemplates(templates) {
+        const error = calculator.validateTemplates(templates);
+        return error ? { ok: false, error } : { ok: true };
+    }
     function rememberUndo(entry, now, ttlMs) { return { entry, expiresAt: now + ttlMs }; }
     function takeUndo(undo, now) { return undo && now < undo.expiresAt ? undo.entry : null; }
     return {
         categoriesFor,
         defaultExpenseType,
         resolveExpenseType,
+        repeatEntryDraft,
+        templateDraft,
+        validateTemplates,
         rememberUndo,
         takeUndo,
         workMinutesForRate: calculator.workMinutesForRate,

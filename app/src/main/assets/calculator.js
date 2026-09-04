@@ -69,15 +69,68 @@
     const MAX_SAFE = Number.MAX_SAFE_INTEGER;
     const isSafeInteger = (value) => typeof value === 'number' && Number.isSafeInteger(value);
     const isPositiveTimestamp = (value) => isSafeInteger(value) && value > 0;
+    const MAX_TEMPLATES = 5;
+
+    function validateTemplate(template, strict) {
+        if (!template || typeof template !== 'object' || Array.isArray(template)) return '模板格式无效';
+        if (strict && (!isSafeInteger(template.id) || template.id <= 0)) return '模板 ID 无效';
+        if (typeof template.name !== 'string' || !template.name.trim() || template.name.length > 20) return '模板名称无效';
+        if (template.kind !== 'income' && template.kind !== 'expense') return '模板类型无效';
+        if (typeof template.category !== 'string' || !template.category.trim()) return '模板分类无效';
+        if (typeof template.note !== 'string' && template.note !== undefined) return '模板备注无效';
+        if (typeof template.note === 'string' && template.note.length > 80) return '模板备注不能超过 80 个字符';
+        if (strict && (typeof template.name !== 'string' || typeof template.category !== 'string'
+            || typeof template.note !== 'string' || typeof template.expenseType !== 'string')) return '模板字段类型无效';
+        if (template.kind === 'expense' && template.expenseType !== 'fixed' && template.expenseType !== 'flexible') return '模板支出类型无效';
+        if (template.kind === 'income' && template.expenseType) return '收入模板不能设置支出性质';
+        return null;
+    }
+
+    function validateTemplates(templates, strict) {
+        if (!Array.isArray(templates) || templates.length > MAX_TEMPLATES) return '模板数量无效';
+        const ids = new Set();
+        const names = new Set();
+        for (const template of templates) {
+            const error = validateTemplate(template, strict);
+            const name = template && typeof template.name === 'string' ? template.name.trim() : '';
+            if (error || (strict && ids.has(template.id)) || names.has(name)) return error || '模板 ID 重复';
+            if (strict) ids.add(template.id);
+            if (name) names.add(name);
+        }
+        return null;
+    }
+
+    function draftFromSource(source, today) {
+        if (!source || typeof source !== 'object' || !isValidIsoDate(today)) return null;
+        if (source.kind !== 'income' && source.kind !== 'expense') return null;
+        if (typeof source.category !== 'string' || !source.category.trim()) return null;
+        if (source.kind === 'expense' && source.expenseType !== 'fixed' && source.expenseType !== 'flexible') return null;
+        if (source.kind === 'income' && source.expenseType) return null;
+        if (source.note !== undefined && typeof source.note !== 'string') return null;
+        return {
+            kind: source.kind,
+            amountCents: 0,
+            category: source.category,
+            note: source.note || '',
+            entryDate: today,
+            expenseType: source.kind === 'expense' ? source.expenseType : '',
+        };
+    }
+
+    function repeatEntryDraft(entry, today) { return draftFromSource(entry, today); }
+
+    function templateDraft(template, today) {
+        return validateTemplate(template, true) ? null : draftFromSource(template, today);
+    }
 
     function migrateSnapshot(raw, importMonth) {
-        if (raw && raw.schemaVersion === 2) return { snapshot: raw, migrated: false };
+        if (raw && (raw.schemaVersion === 2 || raw.schemaVersion === 3)) return { snapshot: raw, migrated: false };
         if (raw && raw.schemaVersion !== undefined) throw new Error('不支持的备份版本');
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('备份格式无效');
         if (!Array.isArray(raw.entries)) throw new Error('流水必须是数组');
         const now = Date.now();
         const snapshot = Object.assign({}, raw, {
-            schemaVersion: 2,
+            schemaVersion: 3,
             settings: Object.assign({}, raw && raw.settings),
             entries: raw.entries.map((entry) => Object.assign({}, entry, {
                 id: entry.id === undefined ? 0 : entry.id,
@@ -85,6 +138,7 @@
                 updatedAt: entry.updatedAt === undefined ? now : entry.updatedAt,
                 hourlyRateCentsPerHour: entry.hourlyRateCentsPerHour === undefined ? null : entry.hourlyRateCentsPerHour,
             })),
+            templates: [],
             salaryHistory: [{ effectiveMonth: importMonth, monthlyTakeHomeCents: raw.settings.monthlyTakeHomeCents,
                 createdAt: now, updatedAt: now }],
         });
@@ -171,7 +225,8 @@
     }
 
     function validateSnapshot(snapshot, options) {
-        if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot) || snapshot.schemaVersion !== 2) {
+        if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)
+            || (snapshot.schemaVersion !== 2 && snapshot.schemaVersion !== 3)) {
             return { ok: false, error: '备份版本无效' };
         }
         const settingsError = validateSettings(snapshot.settings, true);
@@ -181,6 +236,10 @@
         if (!Array.isArray(snapshot.entries) || !Array.isArray(snapshot.salaryHistory)) {
             return { ok: false, error: '备份数组格式无效' };
         }
+        const templatesError = snapshot.schemaVersion === 3
+            ? validateTemplates(snapshot.templates, true)
+            : snapshot.templates === undefined ? null : validateTemplates(snapshot.templates, true);
+        if (templatesError) return { ok: false, error: templatesError };
         if (options && options.requireMetadata && (!isPositiveTimestamp(snapshot.exportedAt)
             || typeof snapshot.appVersion !== 'string')) return { ok: false, error: '备份元数据无效' };
         const now = new Date();
@@ -308,6 +367,9 @@
     return {
         calculateHourly,
         workMinutesForAmount,
+        repeatEntryDraft,
+        templateDraft,
+        validateTemplates: (templates) => validateTemplates(templates, true),
         validateSnapshot,
         validateDraft,
         monthlySummary,

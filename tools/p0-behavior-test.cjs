@@ -107,7 +107,7 @@ assert.equal(legacy.snapshot.salaryHistory[0].effectiveMonth, '2026-09');
 assert.equal(legacy.snapshot.entries.length, 1);
 
 assert.throws(() => calc.migrateSnapshot({
-  schemaVersion: 3,
+  schemaVersion: 4,
   settings: validSnapshot.settings,
   entries: [],
 }, '2026-09'), /不支持的备份版本/);
