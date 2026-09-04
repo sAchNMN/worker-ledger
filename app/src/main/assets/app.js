@@ -40,6 +40,7 @@
         ledgerKind: 'expense',
         selectedMonth: '',
         purchasePriceCents: 0,
+        purchasePrefillActive: false,
         toastTimer: null,
         undo: null,
         undoTimer: null,
@@ -331,6 +332,10 @@
         button.disabled = false;
         if (!response.ok) { setStatus(statusId, `保存失败：${response.error}，请重试。`, false); return; }
         clearUndo();
+        if (prefix === 'quick' && state.purchasePrefillActive) {
+            state.purchasePriceCents = 0;
+            state.purchasePrefillActive = false;
+        }
         setStatus(statusId, '已保存', true);
         form.reset();
         if (prefix === 'quick') {
@@ -370,6 +375,7 @@
         setKind($('quick-form'), 'expense');
         $('quick-amount').value = state.purchasePriceCents / 100;
         $('quick-date').value = todayIso();
+        state.purchasePrefillActive = true;
         if (Array.from($('quick-category').options).some((option) => option.value === '购物')) $('quick-category').value = '购物';
         applyExpenseType($('quick-form'), false);
         setStatus('quick-form-status', '金额已带入，请确认分类和支出性质后保存。', true);
@@ -379,6 +385,7 @@
 
     function skipPurchase() {
         state.purchasePriceCents = 0;
+        state.purchasePrefillActive = false;
         setStatus('purchase-form-status', '', false);
         renderPurchaseCalculator();
         showToast('已跳过这次购买，没有写入流水');

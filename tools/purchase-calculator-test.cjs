@@ -55,5 +55,8 @@ for (const marker of ['prePurchaseDecision', 'renderPurchaseCalculator', 'purcha
 }
 assert.match(app, /calc\.prePurchaseDecision\(state\.snapshot, asOfMonth\(\), state\.purchasePriceCents, asOfMonth\(\)\)/);
 assert.match(app, /calc\.prePurchaseDecision\(state\.snapshot, asOfMonth\(\), priceCents, asOfMonth\(\)\)/);
+assert.match(app, /purchasePrefillActive/);
+assert.match(app, /state\.purchasePrefillActive = true/);
+assert.match(app, /state\.purchasePrefillActive = false/);
 
 console.log('purchase calculator behavior passed');
