@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>隐私政策</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F6F7F3;
+    --surface: #FFFFFF;
+    --text: #1F2328;
+    --muted: #6B7280;
+    --mint: #28664F;
+    --line: #E3E6EA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #181D1B;
+      --surface: #202623;
+      --text: #E8EDEA;
+      --muted: #9AA5A0;
+      --mint: #8BC5A4;
+      --line: #2E3633;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    font-size: 15px; line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+  .bar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 16px;
+    background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .bar h1 { font-size: 16px; font-weight: 500; margin: 0; }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 0; border-radius: 999px; padding: 8px 16px;
+    background: var(--mint); color: #fff;
+    font-size: 14px; font-weight: 500; font-family: inherit;
+    cursor: pointer;
+  }
+  @media (prefers-color-scheme: dark) { .back { color: #12211B; } }
+  main { padding: 20px 18px 56px; }
+  h2 { font-size: 16px; font-weight: 500; color: var(--mint); margin: 30px 0 8px; }
+  h2:first-child { margin-top: 6px; }
+  p { margin: 9px 0; }
+  ul { margin: 9px 0; padding-left: 20px; }
+  li { margin: 5px 0; }
+  .lead {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 16px; margin: 6px 0 4px;
+  }
+  .lead strong { color: var(--mint); }
+  .meta { border-top: 1px solid var(--line); margin-top: 34px; padding-top: 16px; color: var(--muted); font-size: 13.5px; }
+  b { font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>隐私政策</h1>
+  <button class="back" type="button" onclick="history.back()">返回</button>
+</div>
+
+<main>
+
+<div class="lead">
+  <strong>核心承诺：本应用不联网，不收集、不上传、不共享任何个人信息。</strong>
+  应用未申请网络权限，不具备访问互联网的能力；所有流水、工资设置与统计数据仅保存在你的手机本地，开发者无法读取，也无法获取。
+</div>
+
+<h2>一、我们收集哪些个人信息</h2>
+<p><b>不收集任何个人信息。</b>本应用不收集、不使用、不存储以下任何一类信息：</p>
+<ul>
+  <li>身份信息（姓名、身份证号、手机号、邮箱、账号密码等）</li>
+  <li>设备信息（设备型号、系统版本、IMEI、OAID、MAC 地址、Android ID 等）</li>
+  <li>位置信息（GPS、基站、WiFi 等任何形式的定位）</li>
+  <li>通讯录、短信、通话记录、相册、麦克风、摄像头内容</li>
+  <li>应用列表、剪贴板、已安装应用与使用行为数据</li>
+  <li>你在应用内填写的记账金额、分类、备注、工资参数</li>
+</ul>
+<p>你在应用内填写的财务数据属于本地数据而非个人信息收集：它只写入手机本地的应用私有数据库，不会离开你的设备。</p>
+
+<h2>二、应用申请的权限</h2>
+<p>本应用<b>未申请任何 Android 系统权限</b>：不申请网络权限，因此不具备联网能力；不申请存储、相册、位置、相机、麦克风、通讯录、通话、短信等任何权限；也不读取设备标识符或应用列表。</p>
+<p>导出与导入备份通过系统文件选择器完成，由你主动指定文件位置，无需授权。你不必在系统设置中为本应用开启任何权限开关，应用即可正常使用全部功能。本应用不存在强制、频繁、过度索取权限的行为。</p>
+
+<h2>三、数据存放位置</h2>
+<ul>
+  <li>记账流水、分类模板、工资历史与个人设置，全部写入手机本地数据库（应用私有目录）。</li>
+  <li>该目录仅本应用可读写，其他应用与开发者均无法访问。</li>
+  <li>数据不依赖浏览器缓存，不使用 Cookie 或类似跟踪技术，不进行任何埋点统计。</li>
+</ul>
+
+<h2>四、数据的共享、转让与公开披露</h2>
+<p>本应用<b>不存在</b>向任何第三方（含开发者、关联公司、广告商、数据分析机构）共享、转让或出售你的数据的行为，不存在将你的数据用于广告投放、用户画像、精准营销或个性化推荐的行为，也不存在公开披露你的任何数据的行为。因应用不具备联网能力，上述行为在技术上亦无法发生。</p>
+
+<h2>五、第三方 SDK 与外部服务</h2>
+<p>本应用<b>未集成任何第三方 SDK</b>：无统计分析 SDK、无广告 SDK、无推送 SDK、无崩溃上报 SDK、无社交登录与支付 SDK。应用全部功能基于 Android 系统原生接口实现。</p>
+
+<h2>六、备份与导出</h2>
+<ul>
+  <li>导出为你主动触发的本地操作，生成 JSON 文件并保存至你选定的位置。</li>
+  <li>应用不会自动上传、自动同步或自动备份任何数据。</li>
+  <li>导出文件离开应用后的存放、分享与保管由你自行决定，请你妥善保管。</li>
+  <li>导入时文件仅在本机校验与读取，取消或校验失败都不会覆盖你现有的数据。</li>
+</ul>
+
+<h2>七、系统备份与自动同步</h2>
+<ul>
+  <li>本应用已关闭 Android 系统自动备份，你的应用数据不会被系统备份到云端或在换机时自动恢复。</li>
+  <li>本应用不提供云同步，也不提供跨设备自动同步；跨设备迁移必须由你手动导出、导入备份文件。</li>
+  <li>本应用无自启动行为、无后台静默运行、无关联启动，退出后不会在后台收集任何信息。</li>
+</ul>
+
+<h2>八、数据的删除</h2>
+<ul>
+  <li>在应用内删除单条记录或清空数据，会立即从本地数据库移除对应内容。</li>
+  <li>卸载本应用，或执行系统"清除应用数据"，即彻底删除全部本地数据，不可恢复。</li>
+  <li>由于数据始终只存在于你的设备本地，不存在需要向开发者申请删除的云端副本。你无需提出任何删除请求，卸载即完成删除。</li>
+</ul>
+
+<h2>九、未成年人保护</h2>
+<p>本应用为本地记账工具，不含社交、广告、付费、抽奖与个性化推荐功能，不收集任何个人信息，亦不会出现任何诱导性内容。未成年人可在监护人指导下使用。</p>
+
+<h2>十、信息安全</h2>
+<p>你的数据仅保存在应用私有目录中，受 Android 系统应用沙箱保护，其他应用无法读取。由于数据不经过网络传输，不存在传输环节的泄露风险。请你自行妥善保管导出的 JSON 备份文件及手机解锁凭据。</p>
+
+<h2>十一、本政策的变更</h2>
+<p>若本政策发生变更，更新后的版本将在应用内本页面公示并同步修改本页顶部的更新日期。若应用未来新增任何涉及数据收集的功能，我们会在版本更新前明确告知你，并重新征求你的同意。</p>
+
+<h2>十二、联系我们</h2>
+<p>如你对本隐私政策有任何疑问、意见或投诉，可通过以下方式联系开发者：</p>
+<ul>
+  <li>开发者：sAchNMN</li>
+  <li>联系邮箱：347591764@qq.com</li>
+  <li>开源仓库：github.com/sAchNMN/worker-ledger</li>
+</ul>
+<p>我们将在收到反馈后 15 个工作日内予以回复。</p>
+
+<div class="meta">
+  <p><b>生效日期：</b>2026 年 9 月 15 日　　<b>更新日期：</b>2026 年 9 月 15 日</p>
+  <p>本隐私政策由开发者 sAchNMN 发布，适用于"打工人小账本"（worker-ledger）Android 应用。</p>
+</div>
+
+</main>
+</body>
+</html>

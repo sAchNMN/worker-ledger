@@ -603,6 +603,7 @@
         });
         $('export-button').addEventListener('click', () => { if (!window.AndroidBridge) { showToast('本地数据接口不可用', true); return; } window.AndroidBridge.requestExport(); });
         $('import-button').addEventListener('click', () => { if (!window.AndroidBridge) { showToast('本地数据接口不可用', true); return; } window.AndroidBridge.requestImport(); });
+        $('privacy-button').addEventListener('click', () => { window.location.href = 'privacy.html'; });
         $('month-picker').addEventListener('change', (event) => { state.selectedMonth = event.target.value || iso.slice(0, 7); renderAll(); });
         ['scenario-commute', 'scenario-overtime', 'scenario-raise'].forEach((id) => $(id).addEventListener('input', renderDiscover));
         $('formula-toggle').addEventListener('click', () => { const formula = $('hourly-formula'); const hidden = formula.classList.toggle('hidden'); $('formula-toggle').textContent = hidden ? '展开' : '收起'; });
